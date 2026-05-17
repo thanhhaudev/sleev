@@ -2,7 +2,7 @@ import AppKit
 import SleevCore
 
 @main
-final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerDelegate, AgentClientObserver {
+final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerDelegate {
     private enum RunMode {
         case onboardingPreview
         case statusBarPreview
@@ -13,9 +13,10 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
     private let agentLifecycle = AgentLifecycle()
     private let onboardingWindow = OnboardingWindowController()
     private let onboardingVC = OnboardingViewController()
+    private let accessibility = AccessibilityService()
     private var statusBar: StatusBarController?
     private var runMode: RunMode = .real
-    private var awaitingGrantRestart = false
+    private var pollTimer: Timer?
 
     static func main() {
         let app = NSApplication.shared
@@ -42,39 +43,31 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
         runMode = .real
         onboardingVC.delegate = self
         onboardingWindow.install(viewController: onboardingVC)
-        agent.observer = self
 
+        // Register the agent so it's available when Phase 2 needs it. The agent
+        // is NOT involved in the AX permission flow — UI handles that directly.
         do {
             try agentLifecycle.register()
         } catch {
             Log.app.fault("AgentLifecycle.register failed: \(error.localizedDescription, privacy: .public)")
         }
-
         agent.connect()
-        Task { await self.evaluatePermissionAndPresentUI() }
+
+        apply(state: accessibility.currentState())
     }
 
     func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows: Bool) -> Bool {
         Log.app.info("Reopen requested (hasVisibleWindows=\(hasVisibleWindows))")
         if runMode == .real {
-            Task { await self.evaluatePermissionAndPresentUI() }
+            apply(state: accessibility.currentState())
         }
         return true
-    }
-
-    private func evaluatePermissionAndPresentUI() async {
-        do {
-            let state = try await agent.requestAXStatus()
-            await MainActor.run { self.apply(state: state) }
-        } catch {
-            Log.app.error("UI: initial AX query failed: \(error.localizedDescription, privacy: .public)")
-            await MainActor.run { self.onboardingWindow.present() }
-        }
     }
 
     private func apply(state: AXPermissionState) {
         switch state {
         case .granted:
+            stopPolling()
             onboardingWindow.dismiss()
             if statusBar == nil {
                 statusBar = StatusBarController()
@@ -84,7 +77,29 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
             statusBar = nil
             Log.app.info("Status bar removed")
             onboardingWindow.present()
+            startPolling()
         }
+    }
+
+    // MARK: - Polling
+
+    private func startPolling() {
+        guard pollTimer == nil else { return }
+        Log.app.info("Polling AX state every 1.5s while onboarding shown")
+        pollTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            let state = self.accessibility.currentState()
+            if state == .granted {
+                self.apply(state: .granted)
+            }
+        }
+    }
+
+    private func stopPolling() {
+        guard pollTimer != nil else { return }
+        Log.app.info("Stopping AX poll")
+        pollTimer?.invalidate()
+        pollTimer = nil
     }
 
     // MARK: - Previews
@@ -111,69 +126,22 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
             alert.informativeText = "Real wiring lands in M2."
             alert.runModal()
         case .real:
-            Task { _ = try? await self.agent.promptForAXPermission() }
-            armRelaunchOnActivation()
+            Log.app.info("OpenSettings: prompting from UI process")
+            _ = accessibility.promptForPermission()
+        }
+    }
+
+    func onboardingViewControllerDidRequestCheckNow(_: OnboardingViewController) {
+        // No longer needed — polling auto-detects. But keep the protocol method
+        // so OnboardingViewController doesn't need to change. Trigger an
+        // immediate check as a convenience.
+        if runMode == .real {
+            apply(state: accessibility.currentState())
         }
     }
 
     func onboardingViewControllerDidRequestQuit(_: OnboardingViewController) {
         Log.app.info("Quit tapped")
-        NSApp.terminate(nil)
-    }
-
-    // MARK: - AgentClientObserver
-
-    func agentClient(_: AgentClient, axStateDidChange state: AXPermissionState) {
-        apply(state: state)
-    }
-
-    // MARK: - Self-relaunch after AX grant
-
-    /// Arms a one-shot observer that fully relaunches the app the next time sleev
-    /// becomes the active application. This is how Hidden Bar, AltTab, and similar
-    /// menubar utilities defeat macOS's per-process AXIsProcessTrusted cache: the
-    /// user grants in System Settings, returns to sleev, and a fresh process tree
-    /// reads the new trust state on first start.
-    private func armRelaunchOnActivation() {
-        guard !awaitingGrantRestart else { return }
-        awaitingGrantRestart = true
-        Log.app.info("Self-relaunch armed; waiting for user to return to sleev")
-        NSWorkspace.shared.notificationCenter.addObserver(
-            self,
-            selector: #selector(workspaceDidActivateApplication(_:)),
-            name: NSWorkspace.didActivateApplicationNotification,
-            object: nil
-        )
-    }
-
-    @objc private func workspaceDidActivateApplication(_ notification: Notification) {
-        guard awaitingGrantRestart else { return }
-        guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
-        else { return }
-        guard app.bundleIdentifier == Bundle.main.bundleIdentifier else { return }
-        guard app.processIdentifier == ProcessInfo.processInfo.processIdentifier else { return }
-        // It's us, and we were waiting.
-        Log.app.info("sleev re-activated; relaunching for fresh AX state")
-        awaitingGrantRestart = false
-        NSWorkspace.shared.notificationCenter.removeObserver(
-            self,
-            name: NSWorkspace.didActivateApplicationNotification,
-            object: nil
-        )
-        relaunchSelf()
-    }
-
-    private func relaunchSelf() {
-        let bundlePath = Bundle.main.bundlePath
-        let task = Process()
-        task.launchPath = "/bin/sh"
-        task.arguments = ["-c", "sleep 0.5 && open \"\(bundlePath)\""]
-        do {
-            try task.run()
-        } catch {
-            Log.app.fault("Self-relaunch shell failed: \(error.localizedDescription, privacy: .public)")
-        }
-        // Quit immediately; the detached shell will reopen us after 0.5s.
         NSApp.terminate(nil)
     }
 }

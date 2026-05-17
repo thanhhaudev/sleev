@@ -3,13 +3,21 @@ import SleevCore
 
 protocol OnboardingViewControllerDelegate: AnyObject {
     func onboardingViewControllerDidRequestOpenSettings(_ viewController: OnboardingViewController)
+    func onboardingViewControllerDidRequestCheckNow(_ viewController: OnboardingViewController)
     func onboardingViewControllerDidRequestQuit(_ viewController: OnboardingViewController)
 }
 
 final class OnboardingViewController: NSViewController {
+    enum Mode {
+        case openSettings
+        case checkNow
+    }
+
     weak var delegate: OnboardingViewControllerDelegate?
 
     private let logoImageView = NSImageView()
+    private let primaryButton = NSButton()
+    private var currentMode: Mode = .openSettings
 
     override func loadView() {
         let container = NSView(frame: NSRect(x: 0, y: 0, width: 560, height: 420))
@@ -45,6 +53,17 @@ final class OnboardingViewController: NSViewController {
             trianglePointsLeft: true
         )
         logoImageView.setFrameSize(logoSize)
+        setMode(.openSettings)
+    }
+
+    func setMode(_ mode: Mode) {
+        currentMode = mode
+        switch mode {
+        case .openSettings:
+            primaryButton.title = "Open System Settings"
+        case .checkNow:
+            primaryButton.title = "I've granted, check now"
+        }
     }
 
     // MARK: - Layout helpers
@@ -103,12 +122,13 @@ final class OnboardingViewController: NSViewController {
         quitButton.bezelStyle = .rounded
         quitButton.controlSize = .large
 
-        let openButton = NSButton(title: "Open System Settings", target: self, action: #selector(openSettings))
-        openButton.bezelStyle = .rounded
-        openButton.keyEquivalent = "\r"
-        openButton.controlSize = .large
+        primaryButton.bezelStyle = .rounded
+        primaryButton.keyEquivalent = "\r"
+        primaryButton.controlSize = .large
+        primaryButton.target = self
+        primaryButton.action = #selector(primaryButtonPressed)
 
-        let stack = NSStackView(views: [quitButton, openButton])
+        let stack = NSStackView(views: [quitButton, primaryButton])
         stack.orientation = .horizontal
         stack.alignment = .centerY
         stack.spacing = 12
@@ -146,8 +166,13 @@ final class OnboardingViewController: NSViewController {
 
     // MARK: - Actions
 
-    @objc private func openSettings() {
-        delegate?.onboardingViewControllerDidRequestOpenSettings(self)
+    @objc private func primaryButtonPressed() {
+        switch currentMode {
+        case .openSettings:
+            delegate?.onboardingViewControllerDidRequestOpenSettings(self)
+        case .checkNow:
+            delegate?.onboardingViewControllerDidRequestCheckNow(self)
+        }
     }
 
     @objc private func quit() {
