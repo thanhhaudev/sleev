@@ -55,12 +55,16 @@ ci: lint generate build test
 	@echo "✓ Full CI pipeline passed locally"
 
 # Preview modes — run the freshly built binary directly (no install needed).
+# Kills any existing Sleev preview process first so you don't end up with
+# duplicate menubar items.
 preview-onboarding: build
+	@pkill -x Sleev 2>/dev/null || true
 	@APP=$$(find $(BUILD_PATTERN) -name $(APP_NAME) -type d | head -1); \
 	echo "Launching $$APP/Contents/MacOS/Sleev --preview-onboarding"; \
 	"$$APP/Contents/MacOS/Sleev" --preview-onboarding
 
 preview-statusbar: build
+	@pkill -x Sleev 2>/dev/null || true
 	@APP=$$(find $(BUILD_PATTERN) -name $(APP_NAME) -type d | head -1); \
 	echo "Launching $$APP/Contents/MacOS/Sleev --preview-statusbar"; \
 	"$$APP/Contents/MacOS/Sleev" --preview-statusbar
