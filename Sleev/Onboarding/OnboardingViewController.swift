@@ -12,30 +12,35 @@ final class OnboardingViewController: NSViewController {
     private let logoImageView = NSImageView()
 
     override func loadView() {
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 500, height: 340))
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 560, height: 420))
         container.wantsLayer = true
         addEffectView(to: container)
 
-        let contentStack = buildContentStack()
-        contentStack.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(contentStack)
+        let mainStack = buildMainStack()
+        mainStack.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(mainStack)
 
-        let buttonStack = buildButtonStack()
-        buttonStack.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(buttonStack)
+        let footerView = buildFooterView()
+        footerView.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(footerView)
 
-        activateConstraints(contentStack: contentStack, buttonStack: buttonStack, container: container)
+        NSLayoutConstraint.activate([
+            mainStack.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            mainStack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            mainStack.widthAnchor.constraint(equalToConstant: 460),
+
+            footerView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            footerView.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -16)
+        ])
 
         self.view = container
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Use naturalSize so the glyph is never clipped. Do NOT set isTemplate —
-        // the non-template fill respects controlAccentColor.
-        let logoSize = SleeveGlyph.naturalSize(forHeight: 36)
+        let logoSize = SleeveGlyph.naturalSize(forHeight: 40)
         logoImageView.image = SleeveGlyph.image(
-            height: 36,
+            height: 40,
             color: NSColor.controlAccentColor,
             trianglePointsLeft: true
         )
@@ -51,7 +56,6 @@ final class OnboardingViewController: NSViewController {
         blur.state = .active
         blur.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(blur)
-        // Pin to all edges — we want blur to fill including under the titlebar.
         NSLayoutConstraint.activate([
             blur.topAnchor.constraint(equalTo: container.topAnchor),
             blur.leadingAnchor.constraint(equalTo: container.leadingAnchor),
@@ -60,52 +64,49 @@ final class OnboardingViewController: NSViewController {
         ])
     }
 
-    private func buildContentStack() -> NSStackView {
+    private func buildMainStack() -> NSStackView {
         logoImageView.translatesAutoresizingMaskIntoConstraints = false
         logoImageView.imageScaling = .scaleProportionallyUpOrDown
+
+        let logoSize = SleeveGlyph.naturalSize(forHeight: 40)
+        NSLayoutConstraint.activate([
+            logoImageView.heightAnchor.constraint(equalToConstant: 40),
+            logoImageView.widthAnchor.constraint(equalToConstant: logoSize.width)
+        ])
 
         let titleLabel = makeLabel(
             text: "sleev needs Accessibility access",
             font: .systemFont(ofSize: 26, weight: .bold)
         )
-        titleLabel.alignment = .left
+        titleLabel.alignment = .center
 
         let bodyLabel = makeLabel(
-            text: """
-            sleev rearranges menubar icons on your behalf and needs Accessibility \
-            permission to do so. Open System Settings → Privacy & Security → \
-            Accessibility, then enable sleev.
-            """,
+            text: "Allow to rearrange menubar icons on your behalf.",
             font: .systemFont(ofSize: 13)
         )
         bodyLabel.textColor = .secondaryLabelColor
-        bodyLabel.maximumNumberOfLines = 0
-        bodyLabel.lineBreakMode = .byWordWrapping
-        bodyLabel.usesSingleLineMode = false
-        bodyLabel.cell?.wraps = true
-        bodyLabel.cell?.isScrollable = false
-        bodyLabel.alignment = .left
-        bodyLabel.preferredMaxLayoutWidth = 400
-        bodyLabel.widthAnchor.constraint(equalToConstant: 400).isActive = true
-        bodyLabel.setContentHuggingPriority(.required, for: .vertical)
+        bodyLabel.alignment = .center
+        bodyLabel.maximumNumberOfLines = 1
 
-        let stack = NSStackView(views: [logoImageView, titleLabel, bodyLabel])
+        let buttonStack = buildButtonStack()
+
+        let stack = NSStackView(views: [logoImageView, titleLabel, bodyLabel, buttonStack])
         stack.orientation = .vertical
-        stack.alignment = .leading
-        stack.distribution = .gravityAreas
-        stack.spacing = 16
-        stack.setCustomSpacing(20, after: logoImageView)
-        stack.setCustomSpacing(10, after: titleLabel)
+        stack.alignment = .centerX
+        stack.spacing = 14
+        stack.setCustomSpacing(24, after: bodyLabel)
         return stack
     }
 
     private func buildButtonStack() -> NSStackView {
         let quitButton = NSButton(title: "Quit", target: self, action: #selector(quit))
         quitButton.bezelStyle = .rounded
+        quitButton.controlSize = .large
 
         let openButton = NSButton(title: "Open System Settings", target: self, action: #selector(openSettings))
         openButton.bezelStyle = .rounded
         openButton.keyEquivalent = "\r"
+        openButton.controlSize = .large
 
         let stack = NSStackView(views: [quitButton, openButton])
         stack.orientation = .horizontal
@@ -114,22 +115,25 @@ final class OnboardingViewController: NSViewController {
         return stack
     }
 
-    private func activateConstraints(contentStack: NSStackView, buttonStack: NSStackView, container: NSView) {
-        let logoSize = SleeveGlyph.naturalSize(forHeight: 36)
-        NSLayoutConstraint.activate([
-            logoImageView.heightAnchor.constraint(equalToConstant: 36),
-            logoImageView.widthAnchor.constraint(equalToConstant: logoSize.width),
+    private func buildFooterView() -> NSStackView {
+        let shieldImageView = NSImageView()
+        shieldImageView.image = NSImage(systemSymbolName: "checkmark.shield", accessibilityDescription: nil)
+        shieldImageView.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
+        shieldImageView.contentTintColor = .tertiaryLabelColor
+        shieldImageView.translatesAutoresizingMaskIntoConstraints = false
 
-            // Content stack: centered horizontally, fixed 400pt wide, clears traffic lights.
-            contentStack.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            contentStack.topAnchor.constraint(greaterThanOrEqualTo: container.topAnchor, constant: 64),
-            contentStack.bottomAnchor.constraint(lessThanOrEqualTo: buttonStack.topAnchor, constant: -28),
-            contentStack.widthAnchor.constraint(equalToConstant: 400),
+        let footerLabel = makeLabel(
+            text: "Privacy-safe. sleev only reads menubar layout, never your content.",
+            font: .systemFont(ofSize: 11)
+        )
+        footerLabel.textColor = .tertiaryLabelColor
+        footerLabel.maximumNumberOfLines = 1
 
-            // Button stack: pinned to bottom-right corner.
-            buttonStack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -24),
-            buttonStack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -24)
-        ])
+        let stack = NSStackView(views: [shieldImageView, footerLabel])
+        stack.orientation = .horizontal
+        stack.alignment = .centerY
+        stack.spacing = 6
+        return stack
     }
 
     private func makeLabel(text: String, font: NSFont) -> NSTextField {

@@ -8,7 +8,7 @@ enum SleeveGlyph {
         let dotDiameter = 3.0 * unit
         let dotGap = 2.5 * unit
         let triWidth = 6.0 * unit
-        let groupGap = 5.0 * unit
+        let groupGap = dotGap
         let dotsTotalWidth = dotDiameter * 3 + dotGap * 2
         let totalWidth = dotsTotalWidth + groupGap + triWidth
         // Add 1-unit padding on each side so anti-aliasing has room to breathe.
@@ -30,7 +30,7 @@ enum SleeveGlyph {
             let dotGap = 2.5 * unit
             let triHeight = 8.0 * unit
             let triWidth = 6.0 * unit
-            let groupGap = 5.0 * unit
+            let groupGap = dotGap
 
             let dotsTotalWidth = dotDiameter * 3 + dotGap * 2
             let totalWidth = dotsTotalWidth + groupGap + triWidth
