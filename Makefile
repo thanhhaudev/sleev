@@ -39,10 +39,10 @@ generate:
 	xcodegen generate
 
 build: generate
-	xcodebuild -scheme $(SCHEME) -configuration $(CONFIG) -destination '$(DESTINATION)' build
+	xcodebuild -scheme $(SCHEME) -configuration $(CONFIG) -destination '$(DESTINATION)' -allowProvisioningUpdates build
 
 test: generate
-	xcodebuild -scheme $(SCHEME) -configuration $(CONFIG) -destination '$(DESTINATION)' test
+	xcodebuild -scheme $(SCHEME) -configuration $(CONFIG) -destination '$(DESTINATION)' -allowProvisioningUpdates test
 
 lint:
 	swiftlint --strict
@@ -77,14 +77,14 @@ run: install
 install: build
 	@APP=$$(find $(BUILD_PATTERN) -name $(APP_NAME) -type d | head -1); \
 	echo "Installing $$APP -> /Applications/$(APP_NAME)"; \
-	launchctl bootout gui/$$(id -u)/dev.sleev.Sleev.Agent 2>/dev/null || true; \
+	launchctl bootout gui/$$(id -u)/com.thanhhaudev.sleev.Sleev.Agent 2>/dev/null || true; \
 	pkill -x Sleev 2>/dev/null || true; \
 	pkill -x SleevAgent 2>/dev/null || true; \
 	rm -rf /Applications/$(APP_NAME); \
 	cp -R "$$APP" /Applications/$(APP_NAME)
 
 uninstall:
-	launchctl bootout gui/$$(id -u)/dev.sleev.Sleev.Agent 2>/dev/null || true
+	launchctl bootout gui/$$(id -u)/com.thanhhaudev.sleev.Sleev.Agent 2>/dev/null || true
 	pkill -x Sleev 2>/dev/null || true
 	pkill -x SleevAgent 2>/dev/null || true
 	rm -rf /Applications/$(APP_NAME)

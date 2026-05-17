@@ -1,7 +1,7 @@
 import OSLog
 
 public enum Log {
-    public static let subsystem = "dev.sleev"
+    public static let subsystem = "com.thanhhaudev.sleev"
 
     public static let app = Logger(subsystem: subsystem, category: "app")
     public static let xpc = Logger(subsystem: subsystem, category: "xpc")

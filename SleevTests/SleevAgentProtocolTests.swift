@@ -3,11 +3,11 @@ import XCTest
 
 final class SleevAgentProtocolTests: XCTestCase {
     func test_xpcMachServiceNameIsStable() {
-        XCTAssertEqual(SleevXPC.machServiceName, "dev.sleev.Sleev.Agent.xpc")
+        XCTAssertEqual(SleevXPC.machServiceName, "com.thanhhaudev.sleev.Sleev.Agent.xpc")
     }
 
     func test_appGroupIdentifierIsStable() {
-        XCTAssertEqual(SleevXPC.appGroupIdentifier, "group.dev.sleev")
+        XCTAssertEqual(SleevXPC.appGroupIdentifier, "group.com.thanhhaudev.sleev")
     }
 
     func test_axPermissionStateRawValues() {

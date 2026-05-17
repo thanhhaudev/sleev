@@ -7,7 +7,7 @@ final class PreferencesTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        suiteName = "dev.sleev.tests.\(UUID().uuidString)"
+        suiteName = "com.thanhhaudev.sleev.tests.\(UUID().uuidString)"
         defaults = UserDefaults(suiteName: suiteName)
     }
 

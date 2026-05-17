@@ -10,9 +10,9 @@ Run after every Phase 1 release candidate (every push to `master` that ships an 
   ```bash
   pkill -x Sleev 2>/dev/null || true
   pkill -x SleevAgent 2>/dev/null || true
-  tccutil reset Accessibility dev.sleev.Sleev.Agent
-  launchctl bootout gui/$(id -u)/dev.sleev.Sleev.Agent 2>/dev/null || true
-  defaults delete group.dev.sleev 2>/dev/null || true
+  tccutil reset Accessibility com.thanhhaudev.sleev.Sleev.Agent
+  launchctl bootout gui/$(id -u)/com.thanhhaudev.sleev.Sleev.Agent 2>/dev/null || true
+  defaults delete group.com.thanhhaudev.sleev 2>/dev/null || true
   ```
 
 ## 1. First launch & permission prompt
@@ -43,14 +43,14 @@ Run after every Phase 1 release candidate (every push to `master` that ships an 
 1. Right-click chevron → confirm "Disable Auto Collapse" is shown (means auto-hide is currently ON).
 2. Lower the delay for testing:
    ```bash
-   defaults write group.dev.sleev sleev.preferences.autoHide.delaySeconds -float 3.0
+   defaults write group.com.thanhhaudev.sleev sleev.preferences.autoHide.delaySeconds -float 3.0
    ```
    then quit/relaunch sleev.
 3. Expand the menubar.
 4. Expected: within ~3 s of no interaction, items collapse automatically.
 5. Restore:
    ```bash
-   defaults delete group.dev.sleev sleev.preferences.autoHide.delaySeconds
+   defaults delete group.com.thanhhaudev.sleev sleev.preferences.autoHide.delaySeconds
    ```
 
 ## 5. Auto-hide toggle off

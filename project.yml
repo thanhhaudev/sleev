@@ -1,6 +1,6 @@
 name: Sleev
 options:
-  bundleIdPrefix: dev.sleev
+  bundleIdPrefix: com.thanhhaudev.sleev
   deploymentTarget:
     macOS: "14.0"
   developmentLanguage: en
@@ -27,7 +27,7 @@ targets:
       - SleevCore
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: dev.sleev.SleevCore
+        PRODUCT_BUNDLE_IDENTIFIER: com.thanhhaudev.sleev.SleevCore
         SKIP_INSTALL: NO
         GENERATE_INFOPLIST_FILE: YES
         LD_RUNPATH_SEARCH_PATHS:
@@ -61,7 +61,7 @@ targets:
           subpath: Contents/Library/LoginItems
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: dev.sleev.Sleev
+        PRODUCT_BUNDLE_IDENTIFIER: com.thanhhaudev.sleev.Sleev
         INFOPLIST_FILE: Sleev/Info.plist
         CODE_SIGN_ENTITLEMENTS: Sleev/Sleev.entitlements
         LSUIElement: YES
@@ -80,7 +80,7 @@ targets:
         codeSign: false
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: dev.sleev.Sleev.Agent
+        PRODUCT_BUNDLE_IDENTIFIER: com.thanhhaudev.sleev.Sleev.Agent
         INFOPLIST_FILE: SleevAgent/Info.plist
         CODE_SIGN_ENTITLEMENTS: SleevAgent/SleevAgent.entitlements
         LSUIElement: YES
@@ -99,7 +99,7 @@ targets:
       - target: SleevCore
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: dev.sleev.SleevTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.thanhhaudev.sleev.SleevTests
         GENERATE_INFOPLIST_FILE: YES
 
 schemes:
