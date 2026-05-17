@@ -5,10 +5,13 @@ import SleevCore
 /// but does NOT implement the collapse/expand separator trick. M3.2 replaces this.
 final class StatusBarController: NSObject {
     private let handle: NSStatusItem
+    private let handleView: SleeveHandleView
     private var isPretendCollapsed = false
 
     override init() {
-        self.handle = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        let size = SleeveGlyph.naturalSize(forHeight: 14, wrapped: true)
+        self.handle = NSStatusBar.system.statusItem(withLength: size.width)
+        self.handleView = SleeveHandleView(frame: NSRect(origin: .zero, size: size))
         super.init()
         configure()
         handle.autosaveName = "sleev.handle"
@@ -25,18 +28,10 @@ final class StatusBarController: NSObject {
         button.target = self
         button.action = #selector(handlePressed)
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
-        updateImage()
-    }
-
-    private func updateImage() {
-        let image = SleeveGlyph.image(
-            height: 14,
-            color: .labelColor,
-            trianglePointsLeft: !isPretendCollapsed,
-            wrapped: true
-        )
-        image.isTemplate = false
-        handle.button?.image = image
+        button.image = nil
+        handleView.autoresizingMask = [.width, .height]
+        button.addSubview(handleView)
+        handleView.pointsLeft = !isPretendCollapsed
     }
 
     // MARK: - Actions
@@ -56,7 +51,7 @@ final class StatusBarController: NSObject {
     private func fakeToggle() {
         isPretendCollapsed.toggle()
         Log.statusBar.info("[stub] toggle pressed (pretendCollapsed=\(self.isPretendCollapsed))")
-        updateImage()
+        handleView.pointsLeft = !isPretendCollapsed
     }
 
     private func showContextMenu() {
