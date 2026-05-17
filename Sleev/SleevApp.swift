@@ -7,6 +7,7 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
     private let agentLifecycle = AgentLifecycle()
     private let onboardingWindow = OnboardingWindowController()
     private let onboardingVC = OnboardingViewController()
+    private var statusBar: StatusBarController?
 
     static func main() {
         let app = NSApplication.shared
@@ -21,6 +22,10 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
 
         if CommandLine.arguments.contains("--preview-onboarding") {
             runOnboardingPreview()
+            return
+        }
+        if CommandLine.arguments.contains("--preview-statusbar") {
+            runStatusBarPreview()
             return
         }
 
@@ -42,12 +47,17 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
         }
     }
 
-    // MARK: - Onboarding preview
+    // MARK: - Previews (engineer-only)
 
     private func runOnboardingPreview() {
         onboardingVC.delegate = self
         onboardingWindow.install(viewController: onboardingVC)
         onboardingWindow.present()
+    }
+
+    private func runStatusBarPreview() {
+        statusBar = StatusBarController()
+        Log.app.info("Status bar preview installed; right-click the chevron for the menu.")
     }
 
     // MARK: - OnboardingViewControllerDelegate (stub handlers)

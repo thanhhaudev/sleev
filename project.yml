@@ -42,11 +42,13 @@ targets:
       - path: Sleev
         excludes:
           - Resources/SleevAgent.plist
+          - Resources/Assets.xcassets
       - path: Sleev/Resources/SleevAgent.plist
         buildPhase:
           copyFiles:
             destination: wrapper
             subpath: Contents/Library/LaunchAgents
+      - path: Sleev/Resources/Assets.xcassets
     dependencies:
       - target: SleevCore
         embed: true
