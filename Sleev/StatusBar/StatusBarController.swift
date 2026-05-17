@@ -29,11 +29,12 @@ final class StatusBarController: NSObject {
     }
 
     private func updateImage() {
-        let symbol = isPretendCollapsed ? "chevron.compact.right" : "chevron.compact.left"
-        let configuration = NSImage.SymbolConfiguration(pointSize: 13, weight: .medium)
-        let image = NSImage(systemSymbolName: symbol, accessibilityDescription: "sleev")?
-            .withSymbolConfiguration(configuration)
-        image?.isTemplate = true
+        let image = SleeveGlyph.image(
+            size: NSSize(width: 22, height: 14),
+            color: NSColor.labelColor,
+            trianglePointsLeft: !isPretendCollapsed
+        )
+        image.isTemplate = true
         handle.button?.image = image
     }
 
