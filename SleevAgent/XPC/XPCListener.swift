@@ -3,10 +3,11 @@ import SleevCore
 
 final class XPCListener: NSObject, NSXPCListenerDelegate {
     private let listener: NSXPCListener
-    let service = AgentService()
+    let service: AgentService
 
-    override init() {
-        listener = NSXPCListener(machServiceName: SleevXPC.machServiceName)
+    init(axService: AXService) {
+        self.listener = NSXPCListener(machServiceName: SleevXPC.machServiceName)
+        self.service = AgentService(axService: axService)
         super.init()
         listener.delegate = self
     }
@@ -16,10 +17,22 @@ final class XPCListener: NSObject, NSXPCListenerDelegate {
         Log.xpc.info("Agent XPC listener resumed on \(SleevXPC.machServiceName, privacy: .public)")
     }
 
-    func listener(_: NSXPCListener, shouldAcceptNewConnection newConnection: NSXPCConnection) -> Bool {
+    func listener(
+        _: NSXPCListener,
+        shouldAcceptNewConnection newConnection: NSXPCConnection
+    ) -> Bool {
         newConnection.exportedInterface = NSXPCInterface(with: SleevAgentProtocol.self)
         newConnection.exportedObject = service
-        newConnection.invalidationHandler = {
+
+        newConnection.remoteObjectInterface = NSXPCInterface(with: SleevUIProtocol.self)
+        if let proxy = newConnection.remoteObjectProxyWithErrorHandler({ error in
+            Log.xpc.error("Agent: UI proxy error: \(error.localizedDescription, privacy: .public)")
+        }) as? SleevUIProtocol {
+            service.setUIProxy(proxy)
+        }
+
+        newConnection.invalidationHandler = { [weak self] in
+            self?.service.setUIProxy(nil)
             Log.xpc.info("Agent: XPC connection invalidated")
         }
         newConnection.resume()
