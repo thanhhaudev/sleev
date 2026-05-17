@@ -32,9 +32,10 @@ final class StatusBarController: NSObject {
         let image = SleeveGlyph.image(
             height: 14,
             color: .labelColor,
-            trianglePointsLeft: !isPretendCollapsed
+            trianglePointsLeft: !isPretendCollapsed,
+            wrapped: true
         )
-        image.isTemplate = true
+        image.isTemplate = false
         handle.button?.image = image
     }
 
