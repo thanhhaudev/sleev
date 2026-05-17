@@ -18,6 +18,15 @@ final class AgentService: NSObject, SleevAgentProtocol {
         uiProxy?.axPermissionDidChange(rawValue: state.rawValue)
     }
 
+    /// Reads the live state and pushes it. Called from XPCListener whenever a
+    /// new connection is accepted so the UI doesn't have to know whether the
+    /// agent just started, just restarted, or has been running for hours.
+    func pushCurrentAXState() {
+        let state = axService.currentState()
+        Log.accessibility.info("Agent: pushing initial AX state = \(state.rawValue) for new connection")
+        uiProxy?.axPermissionDidChange(rawValue: state.rawValue)
+    }
+
     func ping(reply: @escaping (String) -> Void) {
         Log.xpc.info("Agent: received ping")
         reply("pong")

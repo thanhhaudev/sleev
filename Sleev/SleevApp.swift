@@ -126,11 +126,4 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
     func agentClient(_: AgentClient, axStateDidChange state: AXPermissionState) {
         apply(state: state)
     }
-
-    func agentClientDidReconnect(_: AgentClient) {
-        Log.app.info("AgentClient reconnected; re-evaluating AX state")
-        if runMode == .real {
-            Task { await self.evaluatePermissionAndPresentUI() }
-        }
-    }
 }

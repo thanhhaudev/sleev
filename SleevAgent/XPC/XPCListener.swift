@@ -37,6 +37,11 @@ final class XPCListener: NSObject, NSXPCListenerDelegate {
         }
         newConnection.resume()
         Log.xpc.info("Agent: accepted new XPC connection")
+
+        // Push the live AX state RIGHT NOW so the UI immediately knows whether to
+        // show onboarding or install the menubar. Without this, a fresh agent that
+        // booted up after the user already granted permission never tells anyone.
+        service.pushCurrentAXState()
         return true
     }
 }
