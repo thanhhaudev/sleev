@@ -54,15 +54,15 @@ final class SleeveHandleView: NSView {
         let contentRect = rect.insetBy(dx: 7, dy: 2)
 
         let appearance = effectiveAppearance
-        let fillColor = NSColor.labelColor.withAlphaComponent(0.06).cgColor(for: appearance)
-        let strokeColor = NSColor.labelColor.withAlphaComponent(0.10).cgColor(for: appearance)
+        let fillColor = NSColor.labelColor.withAlphaComponent(0.08).cgColor(for: appearance)
+        let strokeColor = NSColor.labelColor.withAlphaComponent(0.30).cgColor(for: appearance)
         let fgColor = NSColor.labelColor.cgColor(for: appearance)
 
-        let pillRect = rect.insetBy(dx: 0.25, dy: 0.25)
+        let pillRect = rect.insetBy(dx: 0.5, dy: 0.5)
         pillLayer.path = CGPath(roundedRect: pillRect, cornerWidth: 5, cornerHeight: 5, transform: nil)
         pillLayer.fillColor = fillColor
         pillLayer.strokeColor = strokeColor
-        pillLayer.lineWidth = 0.5
+        pillLayer.lineWidth = 1.0
 
         let dotDiameter = 3.0 * unitSize
         let dotGap = 2.5 * unitSize
