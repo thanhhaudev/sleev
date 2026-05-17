@@ -2,12 +2,19 @@ import AppKit
 import SleevCore
 
 @main
-final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerDelegate {
+final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerDelegate, AgentClientObserver {
+    private enum RunMode {
+        case onboardingPreview
+        case statusBarPreview
+        case real
+    }
+
     private let agent = AgentClient()
     private let agentLifecycle = AgentLifecycle()
     private let onboardingWindow = OnboardingWindowController()
     private let onboardingVC = OnboardingViewController()
     private var statusBar: StatusBarController?
+    private var runMode: RunMode = .real
 
     static func main() {
         let app = NSApplication.shared
@@ -21,15 +28,21 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
         Log.app.info("Sleev launched (args=\(CommandLine.arguments.joined(separator: " "), privacy: .public))")
 
         if CommandLine.arguments.contains("--preview-onboarding") {
+            runMode = .onboardingPreview
             runOnboardingPreview()
             return
         }
         if CommandLine.arguments.contains("--preview-statusbar") {
+            runMode = .statusBarPreview
             runStatusBarPreview()
             return
         }
 
-        // Real flow (from M0.4). Preserved verbatim.
+        runMode = .real
+        onboardingVC.delegate = self
+        onboardingWindow.install(viewController: onboardingVC)
+        agent.observer = self
+
         do {
             try agentLifecycle.register()
         } catch {
@@ -37,17 +50,35 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
         }
 
         agent.connect()
-        Task {
-            do {
-                let response = try await agent.ping()
-                Log.app.info("UI: agent ping reply = \(response, privacy: .public)")
-            } catch {
-                Log.app.error("UI: agent ping failed: \(error.localizedDescription, privacy: .public)")
-            }
+        Task { await self.evaluatePermissionAndPresentUI() }
+    }
+
+    private func evaluatePermissionAndPresentUI() async {
+        do {
+            let state = try await agent.requestAXStatus()
+            await MainActor.run { self.apply(state: state) }
+        } catch {
+            Log.app.error("UI: initial AX query failed: \(error.localizedDescription, privacy: .public)")
+            await MainActor.run { self.onboardingWindow.present() }
         }
     }
 
-    // MARK: - Previews (engineer-only)
+    private func apply(state: AXPermissionState) {
+        switch state {
+        case .granted:
+            onboardingWindow.dismiss()
+            if statusBar == nil {
+                statusBar = StatusBarController()
+                Log.app.info("Status bar installed")
+            }
+        case .undetermined, .denied:
+            statusBar = nil
+            Log.app.info("Status bar removed")
+            onboardingWindow.present()
+        }
+    }
+
+    // MARK: - Previews
 
     private func runOnboardingPreview() {
         onboardingVC.delegate = self
@@ -60,18 +91,29 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
         Log.app.info("Status bar preview installed; right-click the chevron for the menu.")
     }
 
-    // MARK: - OnboardingViewControllerDelegate (stub handlers)
+    // MARK: - OnboardingViewControllerDelegate
 
     func onboardingViewControllerDidRequestOpenSettings(_: OnboardingViewController) {
-        Log.app.info("[stub] OpenSettings tapped")
-        let alert = NSAlert()
-        alert.messageText = "Stub: would open System Settings"
-        alert.informativeText = "Real wiring lands in M2."
-        alert.runModal()
+        switch runMode {
+        case .onboardingPreview, .statusBarPreview:
+            Log.app.info("[stub] OpenSettings tapped")
+            let alert = NSAlert()
+            alert.messageText = "Stub: would open System Settings"
+            alert.informativeText = "Real wiring lands in M2."
+            alert.runModal()
+        case .real:
+            Task { _ = try? await self.agent.promptForAXPermission() }
+        }
     }
 
     func onboardingViewControllerDidRequestQuit(_: OnboardingViewController) {
-        Log.app.info("[stub] Quit tapped")
+        Log.app.info("Quit tapped")
         NSApp.terminate(nil)
+    }
+
+    // MARK: - AgentClientObserver
+
+    func agentClient(_: AgentClient, axStateDidChange state: AXPermissionState) {
+        apply(state: state)
     }
 }
