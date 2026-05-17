@@ -12,6 +12,6 @@ final class SleevApp: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        NSLog("Sleev launched, SleevCore.version = %@", SleevCore.version)
+        Log.app.info("Sleev launched")
     }
 }

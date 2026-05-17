@@ -4,7 +4,7 @@ import SleevCore
 @main
 struct AgentMain {
     static func main() {
-        NSLog("SleevAgent launched, SleevCore.version = %@", SleevCore.version)
+        Log.agent.info("SleevAgent launched")
         RunLoop.main.run()
     }
 }
