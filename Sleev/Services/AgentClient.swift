@@ -45,6 +45,12 @@ final class AgentClient: NSObject, SleevUIProtocol {
         return AXPermissionState(rawValue: raw) ?? .undetermined
     }
 
+    func restartForFreshAXCheck() async throws {
+        _ = try await call { (proxy, cont: CheckedContinuation<Int, Error>) in
+            proxy.restartForFreshAXCheck { reply in cont.resume(returning: reply) }
+        }
+    }
+
     // MARK: - SleevUIProtocol
 
     func axPermissionDidChange(rawValue: Int) {

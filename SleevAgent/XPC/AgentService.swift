@@ -42,4 +42,15 @@ final class AgentService: NSObject, SleevAgentProtocol {
         _ = axService.promptForPermission()
         reply(axService.currentState().rawValue)
     }
+
+    func restartForFreshAXCheck(reply: @escaping (Int) -> Void) {
+        Log.agent.info("Agent: restartForFreshAXCheck called; exiting so launchd respawns me")
+        reply(0)
+        // Defer exit so the XPC reply has time to be delivered. macOS's launchd
+        // has a default 10s throttle on respawns (minimum runtime), so don't
+        // bother retrying faster than that on our side.
+        DispatchQueue.global().asyncAfter(deadline: .now() + 0.1) {
+            exit(0)
+        }
+    }
 }

@@ -15,6 +15,7 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
     private let onboardingVC = OnboardingViewController()
     private var statusBar: StatusBarController?
     private var runMode: RunMode = .real
+    private var grantPollingTask: Task<Void, Never>?
 
     static func main() {
         let app = NSApplication.shared
@@ -66,6 +67,7 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
     private func apply(state: AXPermissionState) {
         switch state {
         case .granted:
+            stopGrantPolling()
             onboardingWindow.dismiss()
             if statusBar == nil {
                 statusBar = StatusBarController()
@@ -75,7 +77,32 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
             statusBar = nil
             Log.app.info("Status bar removed")
             onboardingWindow.present()
+            startGrantPolling()
         }
+    }
+
+    private func startGrantPolling() {
+        if grantPollingTask != nil { return }
+        Log.app.info("Grant polling: starting")
+        let agent = self.agent
+        grantPollingTask = Task {
+            // Small initial delay so we don't kill the agent before the user has
+            // even reached System Settings.
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            while !Task.isCancelled {
+                Log.app.info("Grant polling: tick — asking agent to respawn")
+                try? await agent.restartForFreshAXCheck()
+                // launchd's default throttle is ~10s between restarts; pace ourselves.
+                try? await Task.sleep(nanoseconds: 5_000_000_000)
+            }
+        }
+    }
+
+    private func stopGrantPolling() {
+        guard grantPollingTask != nil else { return }
+        Log.app.info("Grant polling: stopping")
+        grantPollingTask?.cancel()
+        grantPollingTask = nil
     }
 
     // MARK: - Previews
