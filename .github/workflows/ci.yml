@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build-test:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show installed Xcode versions
+        run: ls /Applications | grep -E '^Xcode' || true
+
+      - name: Select Xcode
+        # macos-14 runner ships with a few Xcode versions in /Applications.
+        # Pick the highest 15.x available. If none, fall back to whatever
+        # `xcode-select -p` already points at (Xcode_15.0.app at minimum).
+        run: |
+          set -e
+          for v in 15.4 15.3 15.2 15.1 15.0; do
+            if [ -d "/Applications/Xcode_${v}.app" ]; then
+              sudo xcode-select -switch "/Applications/Xcode_${v}.app"
+              echo "Selected Xcode $v"
+              exit 0
+            fi
+          done
+          echo "No Xcode 15.x found; using default $(xcode-select -p)"
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Install xcodegen, swiftlint, swiftformat
+        run: brew install xcodegen swiftlint swiftformat
+
+      - name: SwiftLint (strict)
+        run: swiftlint --strict
+
+      - name: SwiftFormat (lint)
+        run: swiftformat --lint .
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build
+        run: |
+          xcodebuild \
+            -scheme Sleev \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Test
+        run: |
+          xcodebuild \
+            -scheme Sleev \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            test

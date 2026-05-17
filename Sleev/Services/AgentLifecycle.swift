@@ -11,15 +11,17 @@ final class AgentLifecycle {
     private let service: SMAppService
 
     init() {
-        self.service = SMAppService.agent(plistName: "SleevAgent.plist")
+        service = SMAppService.agent(plistName: "SleevAgent.plist")
     }
 
-    var status: SMAppService.Status { service.status }
+    var status: SMAppService.Status {
+        service.status
+    }
 
     func register() throws {
         do {
             try service.register()
-            Log.app.info("AgentLifecycle: registered, status=\(self.status.rawValue)")
+            Log.app.info("AgentLifecycle: registered, status=\(status.rawValue)")
         } catch {
             Log.app.error("AgentLifecycle: register failed: \(error.localizedDescription, privacy: .public)")
             throw AgentLifecycleError.registrationFailed(error)

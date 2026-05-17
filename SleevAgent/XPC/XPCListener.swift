@@ -6,7 +6,7 @@ final class XPCListener: NSObject, NSXPCListenerDelegate {
     let service = AgentService()
 
     override init() {
-        self.listener = NSXPCListener(machServiceName: SleevXPC.machServiceName)
+        listener = NSXPCListener(machServiceName: SleevXPC.machServiceName)
         super.init()
         listener.delegate = self
     }
@@ -16,7 +16,7 @@ final class XPCListener: NSObject, NSXPCListenerDelegate {
         Log.xpc.info("Agent XPC listener resumed on \(SleevXPC.machServiceName, privacy: .public)")
     }
 
-    func listener(_ listener: NSXPCListener, shouldAcceptNewConnection newConnection: NSXPCConnection) -> Bool {
+    func listener(_: NSXPCListener, shouldAcceptNewConnection newConnection: NSXPCConnection) -> Bool {
         newConnection.exportedInterface = NSXPCInterface(with: SleevAgentProtocol.self)
         newConnection.exportedObject = service
         newConnection.invalidationHandler = {

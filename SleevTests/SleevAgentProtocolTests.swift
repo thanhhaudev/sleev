@@ -1,5 +1,5 @@
-import XCTest
 @testable import SleevCore
+import XCTest
 
 final class SleevAgentProtocolTests: XCTestCase {
     func test_xpcMachServiceNameIsStable() {

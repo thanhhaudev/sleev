@@ -14,7 +14,7 @@ final class SleevApp: NSObject, NSApplicationDelegate {
         app.run()
     }
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
+    func applicationDidFinishLaunching(_: Notification) {
         Log.app.info("Sleev launched")
 
         do {
