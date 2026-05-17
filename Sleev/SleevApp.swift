@@ -15,7 +15,7 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
     private let onboardingVC = OnboardingViewController()
     private var statusBar: StatusBarController?
     private var runMode: RunMode = .real
-    private var grantPollingTask: Task<Void, Never>?
+    private var awaitingGrantRestart = false
 
     static func main() {
         let app = NSApplication.shared
@@ -54,6 +54,14 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
         Task { await self.evaluatePermissionAndPresentUI() }
     }
 
+    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        Log.app.info("Reopen requested (hasVisibleWindows=\(hasVisibleWindows))")
+        if runMode == .real {
+            Task { await self.evaluatePermissionAndPresentUI() }
+        }
+        return true
+    }
+
     private func evaluatePermissionAndPresentUI() async {
         do {
             let state = try await agent.requestAXStatus()
@@ -67,7 +75,6 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
     private func apply(state: AXPermissionState) {
         switch state {
         case .granted:
-            stopGrantPolling()
             onboardingWindow.dismiss()
             if statusBar == nil {
                 statusBar = StatusBarController()
@@ -77,32 +84,7 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
             statusBar = nil
             Log.app.info("Status bar removed")
             onboardingWindow.present()
-            startGrantPolling()
         }
-    }
-
-    private func startGrantPolling() {
-        if grantPollingTask != nil { return }
-        Log.app.info("Grant polling: starting")
-        let agent = self.agent
-        grantPollingTask = Task {
-            // Small initial delay so we don't kill the agent before the user has
-            // even reached System Settings.
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
-            while !Task.isCancelled {
-                Log.app.info("Grant polling: tick — asking agent to respawn")
-                try? await agent.restartForFreshAXCheck()
-                // launchd's default throttle is ~10s between restarts; pace ourselves.
-                try? await Task.sleep(nanoseconds: 5_000_000_000)
-            }
-        }
-    }
-
-    private func stopGrantPolling() {
-        guard grantPollingTask != nil else { return }
-        Log.app.info("Grant polling: stopping")
-        grantPollingTask?.cancel()
-        grantPollingTask = nil
     }
 
     // MARK: - Previews
@@ -130,6 +112,7 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
             alert.runModal()
         case .real:
             Task { _ = try? await self.agent.promptForAXPermission() }
+            armRelaunchOnActivation()
         }
     }
 
@@ -138,19 +121,59 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
         NSApp.terminate(nil)
     }
 
-    // MARK: - NSApplicationDelegate extras
-
-    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows: Bool) -> Bool {
-        Log.app.info("Reopen requested (hasVisibleWindows=\(hasVisibleWindows))")
-        if runMode == .real {
-            Task { await self.evaluatePermissionAndPresentUI() }
-        }
-        return true
-    }
-
     // MARK: - AgentClientObserver
 
     func agentClient(_: AgentClient, axStateDidChange state: AXPermissionState) {
         apply(state: state)
+    }
+
+    // MARK: - Self-relaunch after AX grant
+
+    /// Arms a one-shot observer that fully relaunches the app the next time sleev
+    /// becomes the active application. This is how Hidden Bar, AltTab, and similar
+    /// menubar utilities defeat macOS's per-process AXIsProcessTrusted cache: the
+    /// user grants in System Settings, returns to sleev, and a fresh process tree
+    /// reads the new trust state on first start.
+    private func armRelaunchOnActivation() {
+        guard !awaitingGrantRestart else { return }
+        awaitingGrantRestart = true
+        Log.app.info("Self-relaunch armed; waiting for user to return to sleev")
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(workspaceDidActivateApplication(_:)),
+            name: NSWorkspace.didActivateApplicationNotification,
+            object: nil
+        )
+    }
+
+    @objc private func workspaceDidActivateApplication(_ notification: Notification) {
+        guard awaitingGrantRestart else { return }
+        guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+        else { return }
+        guard app.bundleIdentifier == Bundle.main.bundleIdentifier else { return }
+        guard app.processIdentifier == ProcessInfo.processInfo.processIdentifier else { return }
+        // It's us, and we were waiting.
+        Log.app.info("sleev re-activated; relaunching for fresh AX state")
+        awaitingGrantRestart = false
+        NSWorkspace.shared.notificationCenter.removeObserver(
+            self,
+            name: NSWorkspace.didActivateApplicationNotification,
+            object: nil
+        )
+        relaunchSelf()
+    }
+
+    private func relaunchSelf() {
+        let bundlePath = Bundle.main.bundlePath
+        let task = Process()
+        task.launchPath = "/bin/sh"
+        task.arguments = ["-c", "sleep 0.5 && open \"\(bundlePath)\""]
+        do {
+            try task.run()
+        } catch {
+            Log.app.fault("Self-relaunch shell failed: \(error.localizedDescription, privacy: .public)")
+        }
+        // Quit immediately; the detached shell will reopen us after 0.5s.
+        NSApp.terminate(nil)
     }
 }
