@@ -1,6 +1,25 @@
 import AppKit
 
 enum SleeveGlyph {
+    /// Returns the smallest size that contains the full glyph at the given height
+    /// without clipping. Width is derived from the glyph's intrinsic aspect ratio.
+    static func naturalSize(forHeight height: CGFloat) -> NSSize {
+        let unit = height / 14.0
+        let dotDiameter = 3.0 * unit
+        let dotGap = 2.5 * unit
+        let triWidth = 6.0 * unit
+        let groupGap = 5.0 * unit
+        let dotsTotalWidth = dotDiameter * 3 + dotGap * 2
+        let totalWidth = dotsTotalWidth + groupGap + triWidth
+        // Add 1-unit padding on each side so anti-aliasing has room to breathe.
+        return NSSize(width: ceil(totalWidth + 2 * unit), height: height)
+    }
+
+    static func image(height: CGFloat, color: NSColor, trianglePointsLeft: Bool = true) -> NSImage {
+        let size = naturalSize(forHeight: height)
+        return image(size: size, color: color, trianglePointsLeft: trianglePointsLeft)
+    }
+
     static func image(size: NSSize, color: NSColor, trianglePointsLeft: Bool = true) -> NSImage {
         NSImage(size: size, flipped: false) { rect in
             color.setFill()

@@ -30,8 +30,8 @@ final class StatusBarController: NSObject {
 
     private func updateImage() {
         let image = SleeveGlyph.image(
-            size: NSSize(width: 22, height: 14),
-            color: NSColor.labelColor,
+            height: 14,
+            color: .labelColor,
             trianglePointsLeft: !isPretendCollapsed
         )
         image.isTemplate = true
