@@ -111,9 +111,26 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
         NSApp.terminate(nil)
     }
 
+    // MARK: - NSApplicationDelegate extras
+
+    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        Log.app.info("Reopen requested (hasVisibleWindows=\(hasVisibleWindows))")
+        if runMode == .real {
+            Task { await self.evaluatePermissionAndPresentUI() }
+        }
+        return true
+    }
+
     // MARK: - AgentClientObserver
 
     func agentClient(_: AgentClient, axStateDidChange state: AXPermissionState) {
         apply(state: state)
+    }
+
+    func agentClientDidReconnect(_: AgentClient) {
+        Log.app.info("AgentClient reconnected; re-evaluating AX state")
+        if runMode == .real {
+            Task { await self.evaluatePermissionAndPresentUI() }
+        }
     }
 }

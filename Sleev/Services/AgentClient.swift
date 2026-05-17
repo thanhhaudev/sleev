@@ -7,6 +7,7 @@ enum AgentClientError: Error {
 
 protocol AgentClientObserver: AnyObject {
     func agentClient(_ client: AgentClient, axStateDidChange state: AXPermissionState)
+    func agentClientDidReconnect(_ client: AgentClient)
 }
 
 final class AgentClient: NSObject, SleevUIProtocol {
@@ -18,11 +19,25 @@ final class AgentClient: NSObject, SleevUIProtocol {
         conn.remoteObjectInterface = NSXPCInterface(with: SleevAgentProtocol.self)
         conn.exportedInterface = NSXPCInterface(with: SleevUIProtocol.self)
         conn.exportedObject = self
-        conn.invalidationHandler = { Log.xpc.info("UI: XPC connection invalidated") }
-        conn.interruptionHandler = { Log.xpc.info("UI: XPC connection interrupted") }
+        conn.invalidationHandler = { [weak self] in
+            Log.xpc.info("UI: XPC connection invalidated; scheduling reconnect")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
+                self?.reconnect()
+            }
+        }
+        conn.interruptionHandler = {
+            Log.xpc.info("UI: XPC connection interrupted")
+        }
         conn.resume()
         connection = conn
         Log.xpc.info("UI: XPC client connected")
+    }
+
+    private func reconnect() {
+        guard observer != nil else { return }
+        connection = nil
+        connect()
+        observer?.agentClientDidReconnect(self)
     }
 
     func ping() async throws -> String {
@@ -45,7 +60,7 @@ final class AgentClient: NSObject, SleevUIProtocol {
         return AXPermissionState(rawValue: raw) ?? .undetermined
     }
 
-    // MARK: - SleevUIProtocol (called by agent)
+    // MARK: - SleevUIProtocol
 
     func axPermissionDidChange(rawValue: Int) {
         let state = AXPermissionState(rawValue: rawValue) ?? .undetermined
