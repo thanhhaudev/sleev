@@ -29,6 +29,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.sleev.SleevCore
         SKIP_INSTALL: NO
+        GENERATE_INFOPLIST_FILE: YES
         LD_RUNPATH_SEARCH_PATHS:
           - "$(inherited)"
           - "@executable_path/../Frameworks"
@@ -46,7 +47,7 @@ targets:
       - target: SleevAgent
         embed: true
         codeSign: true
-        copyPhase:
+        copy:
           destination: wrapper
           subpath: Contents/Library/LoginItems
     settings:
@@ -90,6 +91,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.sleev.SleevTests
+        GENERATE_INFOPLIST_FILE: YES
 
 schemes:
   Sleev:
