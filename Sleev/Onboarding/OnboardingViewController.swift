@@ -12,14 +12,19 @@ final class OnboardingViewController: NSViewController {
     private let logoImageView = NSImageView()
 
     override func loadView() {
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 520, height: 380))
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 500, height: 340))
         container.wantsLayer = true
         addEffectView(to: container)
 
-        let vstack = buildContentStack()
-        vstack.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(vstack)
-        activateConstraints(vstack: vstack, container: container)
+        let contentStack = buildContentStack()
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(contentStack)
+
+        let buttonStack = buildButtonStack()
+        buttonStack.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(buttonStack)
+
+        activateConstraints(contentStack: contentStack, buttonStack: buttonStack, container: container)
 
         self.view = container
     }
@@ -28,9 +33,9 @@ final class OnboardingViewController: NSViewController {
         super.viewDidLoad()
         // Use naturalSize so the glyph is never clipped. Do NOT set isTemplate —
         // the non-template fill respects controlAccentColor.
-        let logoSize = SleeveGlyph.naturalSize(forHeight: 60)
+        let logoSize = SleeveGlyph.naturalSize(forHeight: 36)
         logoImageView.image = SleeveGlyph.image(
-            height: 60,
+            height: 36,
             color: NSColor.controlAccentColor,
             trianglePointsLeft: true
         )
@@ -61,9 +66,9 @@ final class OnboardingViewController: NSViewController {
 
         let titleLabel = makeLabel(
             text: "sleev needs Accessibility access",
-            font: .systemFont(ofSize: 22, weight: .semibold)
+            font: .systemFont(ofSize: 26, weight: .bold)
         )
-        titleLabel.alignment = .center
+        titleLabel.alignment = .left
 
         let bodyLabel = makeLabel(
             text: """
@@ -79,22 +84,19 @@ final class OnboardingViewController: NSViewController {
         bodyLabel.usesSingleLineMode = false
         bodyLabel.cell?.wraps = true
         bodyLabel.cell?.isScrollable = false
-        bodyLabel.preferredMaxLayoutWidth = 380
-        bodyLabel.alignment = .center
-        bodyLabel.widthAnchor.constraint(equalToConstant: 380).isActive = true
+        bodyLabel.alignment = .left
+        bodyLabel.preferredMaxLayoutWidth = 400
+        bodyLabel.widthAnchor.constraint(equalToConstant: 400).isActive = true
         bodyLabel.setContentHuggingPriority(.required, for: .vertical)
 
-        let buttonStack = buildButtonStack()
-
-        let vstack = NSStackView(views: [logoImageView, titleLabel, bodyLabel, buttonStack])
-        vstack.orientation = .vertical
-        vstack.alignment = .centerX
-        vstack.distribution = .gravityAreas
-        vstack.spacing = 0
-        vstack.setCustomSpacing(24, after: logoImageView)
-        vstack.setCustomSpacing(12, after: titleLabel)
-        vstack.setCustomSpacing(32, after: bodyLabel)
-        return vstack
+        let stack = NSStackView(views: [logoImageView, titleLabel, bodyLabel])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.distribution = .gravityAreas
+        stack.spacing = 16
+        stack.setCustomSpacing(20, after: logoImageView)
+        stack.setCustomSpacing(10, after: titleLabel)
+        return stack
     }
 
     private func buildButtonStack() -> NSStackView {
@@ -112,20 +114,21 @@ final class OnboardingViewController: NSViewController {
         return stack
     }
 
-    private func activateConstraints(vstack: NSStackView, container: NSView) {
-        let logoSize = SleeveGlyph.naturalSize(forHeight: 60)
+    private func activateConstraints(contentStack: NSStackView, buttonStack: NSStackView, container: NSView) {
+        let logoSize = SleeveGlyph.naturalSize(forHeight: 36)
         NSLayoutConstraint.activate([
-            logoImageView.heightAnchor.constraint(equalToConstant: 60),
+            logoImageView.heightAnchor.constraint(equalToConstant: 36),
             logoImageView.widthAnchor.constraint(equalToConstant: logoSize.width),
 
-            // Center vertically in the content area.
-            vstack.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            vstack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 28),
-            vstack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -28),
+            // Content stack: centered horizontally, fixed 400pt wide, clears traffic lights.
+            contentStack.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            contentStack.topAnchor.constraint(greaterThanOrEqualTo: container.topAnchor, constant: 64),
+            contentStack.bottomAnchor.constraint(lessThanOrEqualTo: buttonStack.topAnchor, constant: -28),
+            contentStack.widthAnchor.constraint(equalToConstant: 400),
 
-            // Flexible top/bottom bounds — logo must clear the traffic-light area (56pt).
-            vstack.topAnchor.constraint(greaterThanOrEqualTo: container.topAnchor, constant: 56),
-            vstack.bottomAnchor.constraint(lessThanOrEqualTo: container.bottomAnchor, constant: -24)
+            // Button stack: pinned to bottom-right corner.
+            buttonStack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -24),
+            buttonStack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -24)
         ])
     }
 
