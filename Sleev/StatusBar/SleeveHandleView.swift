@@ -103,7 +103,7 @@ final class SleeveHandleView: NSView {
 
     private func applyTriangleTransform(animated: Bool) {
         let angle: CGFloat = pointsLeft ? 0 : .pi
-        let newTransform = CATransform3DMakeRotation(angle, 0, 0, 1)
+        let newTransform = CATransform3DMakeRotation(angle, 0, 1, 0)
 
         if animated {
             let anim = CABasicAnimation(keyPath: "transform")
@@ -111,7 +111,7 @@ final class SleeveHandleView: NSView {
             anim.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
             anim.fromValue = triangleLayer.presentation()?.transform ?? triangleLayer.transform
             anim.toValue = newTransform
-            triangleLayer.add(anim, forKey: "rotate")
+            triangleLayer.add(anim, forKey: "flip")
         }
 
         CATransaction.begin()

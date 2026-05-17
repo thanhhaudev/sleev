@@ -29,8 +29,16 @@ final class StatusBarController: NSObject {
         button.action = #selector(handlePressed)
         button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         button.image = nil
-        handleView.autoresizingMask = [.width, .height]
+
+        let naturalSize = SleeveGlyph.naturalSize(forHeight: 14, wrapped: true)
+        handleView.translatesAutoresizingMaskIntoConstraints = false
         button.addSubview(handleView)
+        NSLayoutConstraint.activate([
+            handleView.centerXAnchor.constraint(equalTo: button.centerXAnchor),
+            handleView.centerYAnchor.constraint(equalTo: button.centerYAnchor),
+            handleView.widthAnchor.constraint(equalToConstant: naturalSize.width),
+            handleView.heightAnchor.constraint(equalToConstant: naturalSize.height)
+        ])
         handleView.pointsLeft = !isPretendCollapsed
     }
 
