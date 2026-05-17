@@ -21,7 +21,7 @@ final class AgentLifecycle {
     func register() throws {
         do {
             try service.register()
-            Log.app.info("AgentLifecycle: registered, status=\(status.rawValue)")
+            Log.app.info("AgentLifecycle: registered, status=\(self.status.rawValue)")
         } catch {
             Log.app.error("AgentLifecycle: register failed: \(error.localizedDescription, privacy: .public)")
             throw AgentLifecycleError.registrationFailed(error)
