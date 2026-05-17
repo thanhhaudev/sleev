@@ -1,0 +1,118 @@
+name: Sleev
+options:
+  bundleIdPrefix: dev.sleev
+  deploymentTarget:
+    macOS: "14.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    DEVELOPMENT_TEAM: WDCHM35284
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_HARDENED_RUNTIME: YES
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+    GCC_TREAT_WARNINGS_AS_ERRORS: YES
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+targets:
+  SleevCore:
+    type: framework
+    platform: macOS
+    sources:
+      - SleevCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.sleev.SleevCore
+        SKIP_INSTALL: NO
+        LD_RUNPATH_SEARCH_PATHS:
+          - "$(inherited)"
+          - "@executable_path/../Frameworks"
+          - "@loader_path/Frameworks"
+
+  Sleev:
+    type: application
+    platform: macOS
+    sources:
+      - Sleev
+    dependencies:
+      - target: SleevCore
+        embed: true
+        codeSign: true
+      - target: SleevAgent
+        embed: true
+        codeSign: true
+        copyPhase:
+          destination: wrapper
+          subpath: Contents/Library/LoginItems
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.sleev.Sleev
+        INFOPLIST_FILE: Sleev/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Sleev/Sleev.entitlements
+        LSUIElement: YES
+        LD_RUNPATH_SEARCH_PATHS:
+          - "$(inherited)"
+          - "@executable_path/../Frameworks"
+
+  SleevAgent:
+    type: application
+    platform: macOS
+    sources:
+      - SleevAgent
+    dependencies:
+      - target: SleevCore
+        embed: false
+        codeSign: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.sleev.Sleev.Agent
+        INFOPLIST_FILE: SleevAgent/Info.plist
+        CODE_SIGN_ENTITLEMENTS: SleevAgent/SleevAgent.entitlements
+        LSUIElement: YES
+        LSBackgroundOnly: YES
+        LD_RUNPATH_SEARCH_PATHS:
+          - "$(inherited)"
+          - "@executable_path/../../../../Frameworks"
+
+  SleevTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - SleevTests
+    dependencies:
+      - target: Sleev
+      - target: SleevCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.sleev.SleevTests
+
+schemes:
+  Sleev:
+    build:
+      targets:
+        Sleev: all
+        SleevAgent: all
+        SleevCore: all
+    run:
+      config: Debug
+      commandLineArguments:
+        "--preview-onboarding": false
+        "--preview-statusbar": false
+    test:
+      config: Debug
+      targets:
+        - SleevTests
+    archive:
+      config: Release
+  SleevAgent:
+    build:
+      targets:
+        SleevAgent: all
+        SleevCore: all
+    run:
+      config: Debug
