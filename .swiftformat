@@ -5,3 +5,5 @@
 --wrapparameters before-first
 --commas inline
 --trimwhitespace always
+--exclude internal,DerivedData,Sleev.xcodeproj
+--disable redundantSelf
