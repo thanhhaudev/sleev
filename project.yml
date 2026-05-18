@@ -39,26 +39,12 @@ targets:
     type: application
     platform: macOS
     sources:
-      - path: Sleev
-        excludes:
-          - Resources/SleevAgent.plist
-          - Resources/Assets.xcassets
-      - path: Sleev/Resources/SleevAgent.plist
-        buildPhase:
-          copyFiles:
-            destination: wrapper
-            subpath: Contents/Library/LaunchAgents
-      - path: Sleev/Resources/Assets.xcassets
+      - Sleev
+      - Sleev/Resources/Assets.xcassets
     dependencies:
       - target: SleevCore
         embed: true
         codeSign: true
-      - target: SleevAgent
-        embed: true
-        codeSign: true
-        copy:
-          destination: wrapper
-          subpath: Contents/Library/LoginItems
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.thanhhaudev.sleev.Sleev
@@ -68,26 +54,6 @@ targets:
         LD_RUNPATH_SEARCH_PATHS:
           - "$(inherited)"
           - "@executable_path/../Frameworks"
-
-  SleevAgent:
-    type: application
-    platform: macOS
-    sources:
-      - SleevAgent
-    dependencies:
-      - target: SleevCore
-        embed: false
-        codeSign: false
-    settings:
-      base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.thanhhaudev.sleev.Sleev.Agent
-        INFOPLIST_FILE: SleevAgent/Info.plist
-        CODE_SIGN_ENTITLEMENTS: SleevAgent/SleevAgent.entitlements
-        LSUIElement: YES
-        LSBackgroundOnly: YES
-        LD_RUNPATH_SEARCH_PATHS:
-          - "$(inherited)"
-          - "@executable_path/../../../../../Frameworks"
 
   SleevTests:
     type: bundle.unit-test
@@ -107,7 +73,6 @@ schemes:
     build:
       targets:
         Sleev: all
-        SleevAgent: all
         SleevCore: all
     run:
       config: Debug
@@ -120,10 +85,3 @@ schemes:
         - SleevTests
     archive:
       config: Release
-  SleevAgent:
-    build:
-      targets:
-        SleevAgent: all
-        SleevCore: all
-    run:
-      config: Debug

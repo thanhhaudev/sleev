@@ -1,4 +1,5 @@
 import AppKit
+import ServiceManagement
 import SleevCore
 
 @main
@@ -9,8 +10,6 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
         case real
     }
 
-    private let agent = AgentClient()
-    private let agentLifecycle = AgentLifecycle()
     private let onboardingWindow = OnboardingWindowController()
     private let onboardingVC = OnboardingViewController()
     private let accessibility = AccessibilityService()
@@ -29,6 +28,11 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
     func applicationDidFinishLaunching(_: Notification) {
         Log.app.info("Sleev launched (args=\(CommandLine.arguments.joined(separator: " "), privacy: .public))")
 
+        // v0.1 → v0.2 migration: make launchd forget the helper service that no
+        // longer exists. Safe to call when no registration exists; the throw is
+        // ignored intentionally.
+        try? SMAppService.agent(plistName: "SleevAgent.plist").unregister()
+
         if CommandLine.arguments.contains("--preview-onboarding") {
             runMode = .onboardingPreview
             runOnboardingPreview()
@@ -43,16 +47,6 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
         runMode = .real
         onboardingVC.delegate = self
         onboardingWindow.install(viewController: onboardingVC)
-
-        // Register the agent so it's available when Phase 2 needs it. The agent
-        // is NOT involved in the AX permission flow — UI handles that directly.
-        do {
-            try agentLifecycle.register()
-        } catch {
-            Log.app.fault("AgentLifecycle.register failed: \(error.localizedDescription, privacy: .public)")
-        }
-        agent.connect()
-
         apply(state: accessibility.currentState())
     }
 
@@ -81,15 +75,12 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
         }
     }
 
-    // MARK: - Polling
-
     private func startPolling() {
         guard pollTimer == nil else { return }
         Log.app.info("Polling AX state every 1.5s while onboarding shown")
         pollTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
             guard let self else { return }
-            let state = self.accessibility.currentState()
-            if state == .granted {
+            if self.accessibility.currentState() == .granted {
                 self.apply(state: .granted)
             }
         }
@@ -112,7 +103,7 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
 
     private func runStatusBarPreview() {
         statusBar = StatusBarController()
-        Log.app.info("Status bar preview installed; right-click the chevron for the menu.")
+        Log.app.info("Status bar preview installed")
     }
 
     // MARK: - OnboardingViewControllerDelegate
@@ -132,9 +123,6 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
     }
 
     func onboardingViewControllerDidRequestCheckNow(_: OnboardingViewController) {
-        // No longer needed — polling auto-detects. But keep the protocol method
-        // so OnboardingViewController doesn't need to change. Trigger an
-        // immediate check as a convenience.
         if runMode == .real {
             apply(state: accessibility.currentState())
         }
