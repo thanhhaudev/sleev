@@ -2,7 +2,7 @@ name: Sleev
 options:
   bundleIdPrefix: com.thanhhaudev.sleev
   deploymentTarget:
-    macOS: "14.0"
+    macOS: "26.0"
   developmentLanguage: en
   createIntermediateGroups: true
   generateEmptyDirectories: true
@@ -10,7 +10,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.10"
-    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    MACOSX_DEPLOYMENT_TARGET: "26.0"
     DEVELOPMENT_TEAM: WDCHM35284
     CODE_SIGN_STYLE: Automatic
     ENABLE_HARDENED_RUNTIME: YES

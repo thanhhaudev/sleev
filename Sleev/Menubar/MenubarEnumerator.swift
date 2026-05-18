@@ -9,8 +9,7 @@ import SleevCore
 /// macOS 14+ does NOT expose Control Center's bundled items (Wi-Fi, Battery,
 /// Sound, Display) through a single SystemUIServer enumeration point. Instead,
 /// each app that owns a menubar extra exposes its own `AXExtrasMenuBar` attribute.
-/// We enumerate all running apps, collect those extras, and mark Apple-owned items
-/// as `isControllable = false`.
+/// We enumerate all running apps and collect those extras.
 public final class MenubarEnumerator {
     public init() {}
 
@@ -61,7 +60,11 @@ public final class MenubarEnumerator {
         let bundleID = owner?.bundleIdentifier
         let displayName = bestDisplayName(element: element, owner: owner, bundleID: bundleID)
         let frame = elementFrame(element) ?? .zero
-        let isControllable = !(bundleID?.hasPrefix("com.apple.") ?? false)
+        // Treat every enumerated item as controllable in the UI. Whether macOS
+        // actually allows cmd-drag to move a given item past the sleev separator
+        // is validated at drag time by the M4 DragSimulator; failures surface as
+        // error banners rather than upfront greying-out.
+        let isControllable = true
         let id = bundleID ?? "name:\(displayName)"
         return MenubarItem(
             id: id,

@@ -25,7 +25,7 @@ final class StatusBarController: NSObject {
     /// SleevApp uses this to open the popover.
     var onRightClick: (() -> Void)?
 
-    /// The status item's button — exposed for anchoring an NSPopover.
+    /// The status item's button — exposed for anchoring the popover window.
     var handleButton: NSStatusBarButton? {
         handle.button
     }

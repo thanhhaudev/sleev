@@ -13,17 +13,14 @@ struct IconGridView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Menubar Icons")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundStyle(.tertiary)
-                .textCase(.uppercase)
-                .kerning(0.5)
+            chipsRow
+            Divider()
 
-            if inventory.controllableItems.isEmpty {
+            if inventory.items.isEmpty {
                 emptyState
             } else {
-                LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(inventory.controllableItems) { item in
+                LazyVGrid(columns: columns, spacing: 12) {
+                    ForEach(inventory.items) { item in
                         IconCardView(
                             item: item,
                             isInFlight: inFlightIDs.contains(item.id),
@@ -34,50 +31,29 @@ struct IconGridView: View {
                 }
             }
 
-            if !inventory.systemItems.isEmpty {
-                Divider()
-                Text("System icons (not editable)")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(.secondary)
-                HStack(spacing: 10) {
-                    ForEach(inventory.systemItems) { item in
-                        HStack(spacing: 4) {
-                            if let icon = item.icon {
-                                Image(nsImage: icon)
-                                    .resizable()
-                                    .interpolation(.high)
-                                    .frame(width: 14, height: 14)
-                            } else {
-                                Image(systemName: "app.dashed")
-                                    .font(.system(size: 12))
-                            }
-                            Text(item.displayName)
-                                .font(.system(size: 11))
-                        }
-                        .foregroundStyle(.tertiary)
-                    }
-                }
-            }
-
             Divider()
-            HStack {
-                Button(action: onToggleAutoHide) {
-                    Text(isAutoHideEnabled ? "Disable Auto Collapse" : "Enable Auto Collapse")
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-                Spacer()
-                Button(action: onQuit) {
-                    Text("Quit sleev")
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
+            footer
         }
         .padding(14)
         .frame(width: 320)
+    }
+
+    // MARK: - Header chips
+
+    private var chipsRow: some View {
+        HStack(spacing: 8) {
+            Chip(label: "sleeved", value: sleevedCount)
+            Chip(label: "pinned", value: pinnedCount)
+            Spacer()
+        }
+    }
+
+    private var sleevedCount: Int {
+        inventory.controllableItems.filter { $0.zone == .sleeved }.count
+    }
+
+    private var pinnedCount: Int {
+        inventory.controllableItems.filter { $0.zone == .visible }.count
     }
 
     private var emptyState: some View {
@@ -85,14 +61,58 @@ struct IconGridView: View {
             Image(systemName: "tray")
                 .font(.system(size: 28))
                 .foregroundStyle(.secondary)
-            Text("No menubar apps detected")
+            Text("No menubar items detected")
                 .font(.system(size: 12, weight: .medium))
-            Text("Install a third-party menubar app to start.")
+            Text("Grant Accessibility and ensure menubar apps are running.")
                 .font(.system(size: 11))
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
+        .padding(.vertical, 20)
+    }
+
+    private var footer: some View {
+        HStack {
+            Button(action: onToggleAutoHide) {
+                Text(isAutoHideEnabled ? "Disable Auto Collapse" : "Enable Auto Collapse")
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            Spacer()
+            Button(action: onQuit) {
+                Text("Quit sleev")
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+}
+
+private struct Chip: View {
+    let label: String
+    let value: Int
+
+    private var systemAccent: Color {
+        Color(nsColor: .controlAccentColor)
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Text(label)
+                .font(.system(size: 10))
+                .foregroundStyle(.secondary)
+            Text("\(value)")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(systemAccent)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .overlay(
+            RoundedRectangle(cornerRadius: 4)
+                .strokeBorder(Color.white.opacity(0.08), lineWidth: 0.5)
+        )
     }
 }

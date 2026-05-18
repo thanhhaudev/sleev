@@ -175,7 +175,7 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
                 icon: stubIcon("wifi"),
                 frame: .zero,
                 zone: .visible,
-                isControllable: false
+                isControllable: true
             ),
             MenubarItem(
                 id: "stub.battery",
@@ -184,7 +184,7 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
                 icon: stubIcon("battery.75"),
                 frame: .zero,
                 zone: .visible,
-                isControllable: false
+                isControllable: true
             )
         ]
     }

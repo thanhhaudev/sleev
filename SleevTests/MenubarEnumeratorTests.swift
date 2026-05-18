@@ -11,15 +11,15 @@ final class MenubarEnumeratorTests: XCTestCase {
         XCTAssertGreaterThan(items.count, 0)
     }
 
-    /// Sanity: Apple-owned items (if present) should be marked not-controllable.
-    func test_appleOwnedItemsAreNotControllable() {
+    /// Every enumerated item is exposed as controllable; whether macOS actually
+    /// permits the drag is decided at drag time by the M4 DragSimulator.
+    func test_allEnumeratedItemsAreControllable() {
         let enumerator = MenubarEnumerator()
         let items = enumerator.enumerate()
-        let appleItems = items.filter { $0.bundleID?.hasPrefix("com.apple.") == true }
-        for item in appleItems {
-            XCTAssertFalse(
+        for item in items {
+            XCTAssertTrue(
                 item.isControllable,
-                "Apple-owned item should not be controllable: \(item.displayName)"
+                "Every enumerated item should be controllable: \(item.displayName)"
             )
         }
     }
