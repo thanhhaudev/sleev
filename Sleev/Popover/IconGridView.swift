@@ -9,12 +9,15 @@ struct IconGridView: View {
     let onToggleAutoHide: () -> Void
     let onQuit: () -> Void
 
-    private let columns: [GridItem] = Array(repeating: .init(.fixed(70), spacing: 8), count: 4)
+    private let columns: [GridItem] = Array(repeating: .init(.fixed(64), spacing: 8), count: 4)
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             Text("Menubar Icons")
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.tertiary)
+                .textCase(.uppercase)
+                .kerning(0.5)
 
             if inventory.controllableItems.isEmpty {
                 emptyState
@@ -34,30 +37,46 @@ struct IconGridView: View {
             if !inventory.systemItems.isEmpty {
                 Divider()
                 Text("System icons (not editable)")
-                    .font(.system(size: 11))
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.secondary)
-                Text(inventory.systemItems.map(\.displayName).joined(separator: " · "))
-                    .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
+                HStack(spacing: 10) {
+                    ForEach(inventory.systemItems) { item in
+                        HStack(spacing: 4) {
+                            if let icon = item.icon {
+                                Image(nsImage: icon)
+                                    .resizable()
+                                    .interpolation(.high)
+                                    .frame(width: 14, height: 14)
+                            } else {
+                                Image(systemName: "app.dashed")
+                                    .font(.system(size: 12))
+                            }
+                            Text(item.displayName)
+                                .font(.system(size: 11))
+                        }
+                        .foregroundStyle(.tertiary)
+                    }
+                }
             }
 
             Divider()
             HStack {
                 Button(action: onToggleAutoHide) {
                     Text(isAutoHideEnabled ? "Disable Auto Collapse" : "Enable Auto Collapse")
-                        .font(.system(size: 11))
+                        .font(.system(size: 11, weight: .regular))
+                        .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
                 Spacer()
                 Button(action: onQuit) {
                     Text("Quit sleev")
-                        .font(.system(size: 11))
+                        .font(.system(size: 11, weight: .regular))
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
             }
         }
-        .padding(16)
+        .padding(14)
         .frame(width: 320)
     }
 

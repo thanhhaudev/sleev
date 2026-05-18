@@ -127,8 +127,17 @@ final class StatusBarController: NSObject {
     // MARK: - Click routing
 
     @objc private func handlePressed() {
-        guard let event = NSApp.currentEvent else { toggle(); return }
-        if event.type == .rightMouseUp || event.modifierFlags.contains(.control) {
+        let event = NSApp.currentEvent
+        let typeRaw = event.map { Int($0.type.rawValue) } ?? -1
+        let modifiers = event?.modifierFlags.rawValue ?? 0
+        Log.statusBar.info("handlePressed: type=\(typeRaw), modifiers=\(modifiers)")
+        guard let event else { toggle(); return }
+        let isRightClick = event.type == .rightMouseUp
+            || event.type == .rightMouseDown
+            || event.modifierFlags.contains(.control)
+        if isRightClick {
+            let callbackState = self.onRightClick != nil ? "set" : "nil"
+            Log.statusBar.info("handlePressed: routing to onRightClick (\(callbackState))")
             onRightClick?()
         } else {
             toggle()

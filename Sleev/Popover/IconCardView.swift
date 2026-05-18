@@ -13,7 +13,7 @@ struct IconCardView: View {
                 .fill(backgroundColor)
                 .overlay(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .strokeBorder(borderColor, lineWidth: isOutOfSync ? 1.5 : 0.5)
+                        .strokeBorder(borderColor, lineWidth: borderWidth)
                 )
 
             VStack(spacing: 4) {
@@ -52,7 +52,7 @@ struct IconCardView: View {
                         Spacer()
                         Circle()
                             .fill(Color.accentColor)
-                            .frame(width: 6, height: 6)
+                            .frame(width: 7, height: 7)
                             .padding(.top, 6)
                             .padding(.trailing, 6)
                     }
@@ -60,7 +60,7 @@ struct IconCardView: View {
                 }
             }
         }
-        .frame(width: 70, height: 80)
+        .frame(width: 64, height: 74)
         .onTapGesture { if item.isControllable, !isInFlight { onTap() } }
     }
 
@@ -69,15 +69,22 @@ struct IconCardView: View {
         case .visible:
             Color(nsColor: .controlBackgroundColor)
         case .sleeved:
-            Color.accentColor.opacity(0.15)
+            Color.accentColor.opacity(0.22)
         }
     }
 
     private var borderColor: Color {
-        if isOutOfSync {
-            Color.yellow
-        } else {
-            Color(nsColor: .separatorColor)
+        if isOutOfSync { return Color.yellow }
+        switch item.zone {
+        case .visible:
+            return Color(nsColor: .separatorColor)
+        case .sleeved:
+            return Color.accentColor.opacity(0.5)
         }
+    }
+
+    private var borderWidth: CGFloat {
+        if isOutOfSync { return 1.5 }
+        return item.zone == .sleeved ? 1.0 : 0.5
     }
 }
