@@ -8,17 +8,19 @@ public enum DragSimulatorError: Error {
     case eventPostFailed
 }
 
+public protocol DragSimulating: Sendable {
+    func simulateDrag(from source: CGPoint, to target: CGPoint) async throws
+}
+
 /// Posts a synthetic ⌘+drag via CGEvent to move a menubar icon.
 /// macOS only permits rearranging menubar extras while ⌘ is held.
-public final class DragSimulator {
+public final class DragSimulator: DragSimulating {
+    private let stepCount = 10
+    private let stepDelayMicroseconds: UInt32 = 15000
+
     public init() {}
 
-    public func simulateDrag(
-        from source: CGPoint,
-        to target: CGPoint,
-        stepCount: Int = 10,
-        stepDelayMicroseconds: UInt32 = 15000
-    ) async throws {
+    public func simulateDrag(from source: CGPoint, to target: CGPoint) async throws {
         guard let cgSource = CGEventSource(stateID: .combinedSessionState) else {
             throw DragSimulatorError.noEventSource
         }
