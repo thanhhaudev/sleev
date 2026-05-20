@@ -11,7 +11,6 @@ final class StatusBarController: NSObject {
     private let handle: NSStatusItem
     private let separator: NSStatusItem
     private let handleView: SleeveHandleView
-    private let separatorDotView = SeparatorDotView(frame: .zero)
     private let autoHide: AutoHideTimer
     private var screenObserver: NSObjectProtocol?
 
@@ -125,21 +124,26 @@ final class StatusBarController: NSObject {
 
     private func configureSeparator() {
         guard let button = separator.button else { return }
-        button.image = nil
         button.title = ""
-        // The dot is the separator's visible content — it earns the status item
-        // a real menu bar slot. Trailing-anchored so it stays beside the chevron
-        // even when the separator's button stretches wide on collapse.
-        separatorDotView.translatesAutoresizingMaskIntoConstraints = false
-        button.addSubview(separatorDotView)
-        NSLayoutConstraint.activate([
-            separatorDotView.trailingAnchor.constraint(equalTo: button.trailingAnchor),
-            separatorDotView.centerYAnchor.constraint(equalTo: button.centerYAnchor),
-            separatorDotView.widthAnchor.constraint(
-                equalToConstant: CollapseLengthCalculator.visibleSeparatorLength
-            ),
-            separatorDotView.heightAnchor.constraint(equalTo: button.heightAnchor)
-        ])
+        // A real image is what earns the separator a slot in the status-item
+        // row. Without visible content the status item is orphaned off-screen
+        // and widening it on collapse hides nothing.
+        button.image = Self.separatorDotImage()
+    }
+
+    /// A small round dot, template-rendered so the menu bar tints it.
+    private static func separatorDotImage() -> NSImage {
+        let diameter: CGFloat = 6
+        let image = NSImage(
+            size: NSSize(width: diameter, height: diameter),
+            flipped: false
+        ) { rect in
+            NSColor.black.setFill()
+            NSBezierPath(ovalIn: rect).fill()
+            return true
+        }
+        image.isTemplate = true
+        return image
     }
 
     /// Width of the widest connected display. The collapsed separator must be
