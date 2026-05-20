@@ -4,7 +4,6 @@ import SwiftUI
 struct IconCardView: View {
     let item: MenubarItem
     let isInFlight: Bool
-    let isOutOfSync: Bool
     let onTap: () -> Void
 
     private static let circleDiameter: CGFloat = 52
@@ -68,9 +67,7 @@ struct IconCardView: View {
 
     @ViewBuilder
     private var borderOverlay: some View {
-        if isOutOfSync {
-            Circle().strokeBorder(Color.yellow, lineWidth: 1.5)
-        } else if !isSleeved {
+        if !isSleeved {
             Circle().strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5)
         }
     }

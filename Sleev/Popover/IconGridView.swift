@@ -36,7 +36,6 @@ struct IconGridView: View {
                         IconCardView(
                             item: item,
                             isInFlight: inventory.inFlightIDs.contains(item.id),
-                            isOutOfSync: inventory.outOfSyncItems.contains { $0.id == item.id },
                             onTap: { onCardTap(item) }
                         )
                     }

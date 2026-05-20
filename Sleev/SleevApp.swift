@@ -189,21 +189,13 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
 
     private func refreshInventory() {
         let enumerator = self.enumerator
-        let separatorMinX = statusBar?.separatorButton?.window?.frame.minX
         Task { [weak self] in
             let raw = await Task.detached(priority: .userInitiated) {
                 enumerator.enumerate()
             }.value
             guard let self else { return }
-            // Derive each item's zone from its physical position so the popover
-            // reflects where icons actually are, not stale persisted intent.
-            let items = raw.map { item -> MenubarItem in
-                var copy = item
-                copy.zone = DragGeometry.physicalZone(forFrame: item.frame, separatorMinX: separatorMinX)
-                return copy
-            }
-            self.inventory.apply(liveItems: items)
-            Log.app.info("inventory refreshed: \(items.count) items")
+            self.inventory.apply(liveItems: raw)
+            Log.app.info("inventory refreshed: \(raw.count) items")
         }
     }
 

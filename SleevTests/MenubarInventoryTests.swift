@@ -19,25 +19,7 @@ final class MenubarInventoryTests: XCTestCase {
     }
 
     @MainActor
-    func test_applyKeepsPhysicalZoneFromLiveItem() {
-        let store = ZoneStore(defaults: defaults, clock: { Date() })
-        let inventory = MenubarInventory(store: store)
-        let live = [
-            MenubarItem(
-                id: "com.spotify.client", bundleID: "com.spotify.client",
-                displayName: "Spotify", icon: nil,
-                frame: .zero, zone: .sleeved, isControllable: true
-            )
-        ]
-        inventory.apply(liveItems: live)
-        XCTAssertEqual(
-            inventory.items.first?.zone, .sleeved,
-            "Inventory should keep the physical zone the caller provided"
-        )
-    }
-
-    @MainActor
-    func test_marksOutOfSyncWhenPhysicalDiffersFromIntent() {
+    func test_applySetsZoneFromStore() {
         let store = ZoneStore(defaults: defaults, clock: { Date() })
         store.set(zone: .sleeved, forItemID: "com.spotify.client")
         let inventory = MenubarInventory(store: store)
@@ -49,9 +31,27 @@ final class MenubarInventoryTests: XCTestCase {
             )
         ]
         inventory.apply(liveItems: live)
-        XCTAssertTrue(
-            inventory.outOfSyncItems.contains { $0.id == "com.spotify.client" },
-            "Physically visible item with sleeved intent should be out of sync"
+        XCTAssertEqual(
+            inventory.items.first?.zone, .sleeved,
+            "Inventory should set each item's zone from ZoneStore, ignoring the live item's zone"
+        )
+    }
+
+    @MainActor
+    func test_applyDefaultsToVisibleWhenItemAbsentFromStore() {
+        let store = ZoneStore(defaults: defaults, clock: { Date() })
+        let inventory = MenubarInventory(store: store)
+        let live = [
+            MenubarItem(
+                id: "com.spotify.client", bundleID: "com.spotify.client",
+                displayName: "Spotify", icon: nil,
+                frame: .zero, zone: .sleeved, isControllable: true
+            )
+        ]
+        inventory.apply(liveItems: live)
+        XCTAssertEqual(
+            inventory.items.first?.zone, .visible,
+            "An item absent from ZoneStore should default to .visible"
         )
     }
 

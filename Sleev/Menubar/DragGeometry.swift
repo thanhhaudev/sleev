@@ -1,17 +1,10 @@
 import CoreGraphics
 import SleevCore
 
-/// Pure geometry for the sleeve trick: classifying an icon's physical zone and
-/// translating a sleeve/unsleeve intent into drag endpoints.
+/// Pure geometry for the sleeve trick: translating a sleeve/unsleeve intent
+/// into synthetic-drag endpoints.
 enum DragGeometry {
     private static let targetOffset: CGFloat = 16
-
-    /// An icon left of the separator's left edge is hidden on collapse
-    /// (sleeved); otherwise it sits in the visible zone.
-    static func physicalZone(forFrame frame: CGRect, separatorMinX: CGFloat?) -> Zone {
-        guard let separatorMinX else { return .visible }
-        return frame.midX < separatorMinX ? .sleeved : .visible
-    }
 
     /// Sleeve targets land left of the separator; unsleeve targets land right
     /// of the handle, clearly inside the visible zone.

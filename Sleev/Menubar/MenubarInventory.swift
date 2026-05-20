@@ -5,7 +5,6 @@ import Foundation
 @MainActor
 public final class MenubarInventory: ObservableObject {
     @Published public private(set) var items: [MenubarItem] = []
-    @Published public private(set) var outOfSyncItems: [MenubarItem] = []
     /// True until the first `apply(liveItems:)` call. Lets the UI show a
     /// loading state while the initial enumeration is running, instead of
     /// flashing the empty state.
@@ -28,21 +27,16 @@ public final class MenubarInventory: ObservableObject {
         self.store = store
     }
 
-    /// Apply a fresh enumeration result. Each item's `zone` is the *physical*
-    /// zone the caller derived from the icon's on-screen position. The persisted
-    /// intent in ZoneStore is compared against it to flag out-of-sync items
-    /// (the icon isn't where the user last asked it to be).
+    /// Apply a fresh enumeration result. Each item's `zone` is set from
+    /// ZoneStore — the persisted intent — so the popover reflects what sleev
+    /// last did, independent of the icon's on-screen position.
     public func apply(liveItems: [MenubarItem]) {
-        var oos: [MenubarItem] = []
-        for item in liveItems {
-            let intent = store.zone(forItemID: item.id)
-            store.set(zone: intent, forItemID: item.id) // refresh lastSeen
-            if item.zone != intent {
-                oos.append(item)
-            }
+        items = liveItems.map { item in
+            var copy = item
+            copy.zone = store.zone(forItemID: item.id)
+            store.set(zone: copy.zone, forItemID: item.id) // refresh lastSeen
+            return copy
         }
-        items = liveItems
-        outOfSyncItems = oos
         isLoading = false
     }
 
