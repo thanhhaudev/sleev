@@ -89,10 +89,11 @@ final class StatusBarController: NSObject {
             Log.statusBar.notice("collapse skipped: handle is not right of separator")
             return
         }
+        collapseLength = CollapseLengthCalculator.collapseLength(forScreenWidth: widestScreenWidth)
         separator.length = collapseLength
         isCollapsed = true
         handleView.pointsLeft = false
-        Log.statusBar.info("collapsed (length=\(self.collapseLength))")
+        Log.statusBar.info("collapsed (length=\(self.collapseLength), widest=\(self.widestScreenWidth))")
         autoHide.cancel()
         onToggle?(true)
     }
@@ -125,6 +126,13 @@ final class StatusBarController: NSObject {
         // The separator's only purpose is to occupy length; no visible content.
         separator.button?.image = nil
         separator.button?.title = ""
+    }
+
+    /// Width of the widest connected display. The collapsed separator must be
+    /// at least this wide to push every icon off whichever screen's menubar it
+    /// lands on — multi-display setups move the menubar between screens.
+    private var widestScreenWidth: CGFloat {
+        NSScreen.screens.map(\.frame.width).max() ?? NSScreen.main?.frame.width ?? 1728
     }
 
     private var isHandleRightOfSeparator: Bool {
@@ -165,8 +173,9 @@ final class StatusBarController: NSObject {
             queue: .main
         ) { [weak self] _ in
             guard let self else { return }
-            let width = NSScreen.main?.frame.width ?? 1728
-            self.collapseLength = CollapseLengthCalculator.collapseLength(forScreenWidth: width)
+            self.collapseLength = CollapseLengthCalculator.collapseLength(
+                forScreenWidth: self.widestScreenWidth
+            )
             if self.isCollapsed {
                 self.separator.length = self.collapseLength
             }
