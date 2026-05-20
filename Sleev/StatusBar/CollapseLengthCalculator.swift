@@ -2,7 +2,8 @@ import CoreGraphics
 import Foundation
 
 enum CollapseLengthCalculator {
-    static let visibleSeparatorLength: CGFloat = 1
+    /// The separator's width while expanded — wide enough to show the dot.
+    static let visibleSeparatorLength: CGFloat = 8
     static let minCollapseLength: CGFloat = 500
     static let maxCollapseLength: CGFloat = 4000
     static let buffer: CGFloat = 200
