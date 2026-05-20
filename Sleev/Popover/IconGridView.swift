@@ -8,6 +8,8 @@ struct IconGridView: View {
     let onCardTap: (MenubarItem) -> Void
     let onToggleAutoHide: () -> Void
     let onQuit: () -> Void
+    /// M4-1 throwaway: triggers a validation drag. Removed in M4-3.
+    let onDebugDrag: () -> Void
 
     private let columns: [GridItem] = Array(repeating: .init(.fixed(64), spacing: 8), count: 4)
 
@@ -94,6 +96,13 @@ struct IconGridView: View {
                 Text(isAutoHideEnabled ? "Disable Auto Collapse" : "Enable Auto Collapse")
                     .font(.system(size: 11, weight: .regular))
                     .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            Spacer()
+            Button(action: onDebugDrag) {
+                Text("Debug drag")
+                    .font(.system(size: 11, weight: .regular))
+                    .foregroundStyle(.orange)
             }
             .buttonStyle(.plain)
             Spacer()

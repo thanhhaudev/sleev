@@ -17,6 +17,7 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
     private let accessibility = AccessibilityService()
     private let zoneStore = ZoneStore()
     private let enumerator = MenubarEnumerator()
+    private let dragSimulator = DragSimulator()
     private var inventory: MenubarInventory!
     private var popover: PopoverPresenter!
     private var inFlightIDs: Set<MenubarItem.ID> = []
@@ -100,9 +101,31 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
             isAutoHideEnabled: preferences.autoHideEnabled,
             onCardTap: { [weak self] item in self?.handleCardTap(item: item) },
             onToggleAutoHide: { [weak self] in self?.toggleAutoHide() },
-            onQuit: { NSApp.terminate(nil) }
+            onQuit: { NSApp.terminate(nil) },
+            onDebugDrag: { [weak self] in self?.debugDragFirstItem() }
         )
         popover.show(relativeTo: button, rootView: root)
+    }
+
+    private func debugDragFirstItem() {
+        // M4-1 throwaway: validates synthetic command-drag. Removed in M4-3.
+        let items = inventory.controllableItems
+        guard let first = items.first else {
+            Log.app.notice("Debug drag: no items")
+            return
+        }
+        Log.app.info("Debug drag: source=\(NSStringFromRect(first.frame), privacy: .public)")
+        let dragSimulator = self.dragSimulator
+        Task {
+            do {
+                let source = CGPoint(x: first.frame.midX, y: first.frame.midY)
+                let target = CGPoint(x: source.x - 80, y: source.y)
+                try await dragSimulator.simulateDrag(from: source, to: target)
+                Log.app.info("Debug drag: completed")
+            } catch {
+                Log.app.error("Debug drag failed: \(error.localizedDescription, privacy: .public)")
+            }
+        }
     }
 
     private func handleCardTap(item: MenubarItem) {
