@@ -3,18 +3,24 @@ import SwiftUI
 
 struct IconGridView: View {
     @ObservedObject var inventory: MenubarInventory
-    @Binding var inFlightIDs: Set<MenubarItem.ID>
+    @Binding var transientBanner: String?
+    @Binding var persistentBanner: String?
     let isAutoHideEnabled: Bool
     let onCardTap: (MenubarItem) -> Void
     let onToggleAutoHide: () -> Void
     let onQuit: () -> Void
-    /// M4-1 throwaway: triggers a validation drag. Removed in M4-3.
-    let onDebugDrag: () -> Void
+    let onDismissTransientBanner: () -> Void
 
     private let columns: [GridItem] = Array(repeating: .init(.fixed(64), spacing: 8), count: 4)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
+            if let message = persistentBanner {
+                ErrorBanner(severity: .persistentWarning, message: message, onDismiss: nil)
+            }
+            if let message = transientBanner {
+                ErrorBanner(severity: .warning, message: message, onDismiss: onDismissTransientBanner)
+            }
             chipsRow
             Divider()
 
@@ -29,7 +35,7 @@ struct IconGridView: View {
                     ForEach(inventory.items) { item in
                         IconCardView(
                             item: item,
-                            isInFlight: inFlightIDs.contains(item.id),
+                            isInFlight: inventory.inFlightIDs.contains(item.id),
                             isOutOfSync: inventory.outOfSyncItems.contains { $0.id == item.id },
                             onTap: { onCardTap(item) }
                         )
@@ -96,13 +102,6 @@ struct IconGridView: View {
                 Text(isAutoHideEnabled ? "Disable Auto Collapse" : "Enable Auto Collapse")
                     .font(.system(size: 11, weight: .regular))
                     .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
-            Spacer()
-            Button(action: onDebugDrag) {
-                Text("Debug drag")
-                    .font(.system(size: 11, weight: .regular))
-                    .foregroundStyle(.orange)
             }
             .buttonStyle(.plain)
             Spacer()

@@ -30,6 +30,12 @@ final class StatusBarController: NSObject {
         handle.button
     }
 
+    /// The separator's button — exposed so drag targets can be computed
+    /// relative to it. Items left of the separator are hidden on collapse.
+    var separatorButton: NSStatusBarButton? {
+        separator.button
+    }
+
     init(preferences: Preferences = Preferences()) {
         let bar = NSStatusBar.system
         let naturalSize = SleeveGlyph.naturalSize(forHeight: 14, wrapped: true)

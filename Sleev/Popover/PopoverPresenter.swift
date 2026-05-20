@@ -98,7 +98,12 @@ public final class PopoverPresenter: NSObject {
     private func installEventMonitors() {
         clickMonitor = NSEvent.addGlobalMonitorForEvents(
             matching: [.leftMouseDown, .rightMouseDown]
-        ) { [weak self] _ in
+        ) { [weak self] event in
+            // Ignore sleev's own synthetic drag events; they would otherwise
+            // dismiss the popover mid-drag.
+            if event.cgEvent?.getIntegerValueField(.eventSourceUserData) == DragSimulator.syntheticEventTag {
+                return
+            }
             DispatchQueue.main.async { self?.close() }
         }
         escapeMonitor = NSEvent.addLocalMonitorForEvents(

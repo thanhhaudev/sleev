@@ -19,7 +19,25 @@ final class MenubarInventoryTests: XCTestCase {
     }
 
     @MainActor
-    func test_reconcileAppliesPersistedZoneToLiveItem() {
+    func test_applyKeepsPhysicalZoneFromLiveItem() {
+        let store = ZoneStore(defaults: defaults, clock: { Date() })
+        let inventory = MenubarInventory(store: store)
+        let live = [
+            MenubarItem(
+                id: "com.spotify.client", bundleID: "com.spotify.client",
+                displayName: "Spotify", icon: nil,
+                frame: .zero, zone: .sleeved, isControllable: true
+            )
+        ]
+        inventory.apply(liveItems: live)
+        XCTAssertEqual(
+            inventory.items.first?.zone, .sleeved,
+            "Inventory should keep the physical zone the caller provided"
+        )
+    }
+
+    @MainActor
+    func test_marksOutOfSyncWhenPhysicalDiffersFromIntent() {
         let store = ZoneStore(defaults: defaults, clock: { Date() })
         store.set(zone: .sleeved, forItemID: "com.spotify.client")
         let inventory = MenubarInventory(store: store)
@@ -31,30 +49,9 @@ final class MenubarInventoryTests: XCTestCase {
             )
         ]
         inventory.apply(liveItems: live)
-        XCTAssertEqual(
-            inventory.items.first?.zone, .sleeved,
-            "Inventory should overlay persisted intent onto live frame"
-        )
-    }
-
-    @MainActor
-    func test_reconcileMarksOutOfSyncWhenActualDiffersFromIntent() {
-        let store = ZoneStore(defaults: defaults, clock: { Date() })
-        store.set(zone: .sleeved, forItemID: "com.spotify.client")
-        let inventory = MenubarInventory(store: store)
-        let live = [
-            MenubarItem(
-                id: "com.spotify.client", bundleID: "com.spotify.client",
-                displayName: "Spotify", icon: nil,
-                frame: .zero, zone: .visible, isControllable: true
-            )
-        ]
-        inventory.apply(
-            liveItems: live,
-            actualZones: ["com.spotify.client": .visible]
-        )
         XCTAssertTrue(
-            inventory.outOfSyncItems.contains { $0.id == "com.spotify.client" }
+            inventory.outOfSyncItems.contains { $0.id == "com.spotify.client" },
+            "Physically visible item with sleeved intent should be out of sync"
         )
     }
 

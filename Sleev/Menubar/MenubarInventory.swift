@@ -10,6 +10,9 @@ public final class MenubarInventory: ObservableObject {
     /// loading state while the initial enumeration is running, instead of
     /// flashing the empty state.
     @Published public private(set) var isLoading: Bool = true
+    /// IDs of items with a drag job in flight. Published so cards can show a
+    /// spinner overlay while the drag runs.
+    @Published public private(set) var inFlightIDs: Set<MenubarItem.ID> = []
 
     public var controllableItems: [MenubarItem] {
         items.filter(\.isControllable)
@@ -25,26 +28,20 @@ public final class MenubarInventory: ObservableObject {
         self.store = store
     }
 
-    /// Apply a fresh enumeration result. `actualZones` lets callers indicate where
-    /// each item physically sits (visible vs sleeved), which the inventory compares
-    /// against the persisted intent to flag out-of-sync items. When `actualZones`
-    /// is empty/missing an entry, the inventory assumes the item is at its persisted zone.
-    public func apply(
-        liveItems: [MenubarItem],
-        actualZones: [String: Zone] = [:]
-    ) {
-        var nextItems: [MenubarItem] = []
+    /// Apply a fresh enumeration result. Each item's `zone` is the *physical*
+    /// zone the caller derived from the icon's on-screen position. The persisted
+    /// intent in ZoneStore is compared against it to flag out-of-sync items
+    /// (the icon isn't where the user last asked it to be).
+    public func apply(liveItems: [MenubarItem]) {
         var oos: [MenubarItem] = []
-        for var item in liveItems {
+        for item in liveItems {
             let intent = store.zone(forItemID: item.id)
-            item.zone = intent
-            nextItems.append(item)
             store.set(zone: intent, forItemID: item.id) // refresh lastSeen
-            if let actual = actualZones[item.id], actual != intent {
+            if item.zone != intent {
                 oos.append(item)
             }
         }
-        items = nextItems
+        items = liveItems
         outOfSyncItems = oos
         isLoading = false
     }
@@ -53,6 +50,14 @@ public final class MenubarInventory: ObservableObject {
         store.set(zone: zone, forItemID: id)
         if let index = items.firstIndex(where: { $0.id == id }) {
             items[index].zone = zone
+        }
+    }
+
+    public func setInFlight(_ id: MenubarItem.ID, _ active: Bool) {
+        if active {
+            inFlightIDs.insert(id)
+        } else {
+            inFlightIDs.remove(id)
         }
     }
 }

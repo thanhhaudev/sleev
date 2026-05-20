@@ -20,7 +20,9 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
     private let dragSimulator = DragSimulator()
     private var inventory: MenubarInventory!
     private var popover: PopoverPresenter!
-    private var inFlightIDs: Set<MenubarItem.ID> = []
+    private var dragQueue: DragQueue!
+    private var transientBanner: String?
+    private var persistentBanner: String?
     private var statusBar: StatusBarController?
     private var runMode: RunMode = .real
     private var pollTimer: Timer?
@@ -38,6 +40,7 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
     func applicationDidFinishLaunching(_: Notification) {
         inventory = MenubarInventory(store: zoneStore)
         popover = PopoverPresenter()
+        dragQueue = makeDragQueue()
         Log.app.info("Sleev launched (args=\(CommandLine.arguments.joined(separator: " "), privacy: .public))")
         try? SMAppService.agent(plistName: "SleevAgent.plist").unregister()
 
@@ -94,46 +97,89 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
         startInventoryRefresh()
         let root = IconGridView(
             inventory: inventory,
-            inFlightIDs: Binding(
-                get: { self.inFlightIDs },
-                set: { self.inFlightIDs = $0 }
+            transientBanner: Binding(
+                get: { self.transientBanner },
+                set: { self.transientBanner = $0 }
+            ),
+            persistentBanner: Binding(
+                get: { self.persistentBanner },
+                set: { self.persistentBanner = $0 }
             ),
             isAutoHideEnabled: preferences.autoHideEnabled,
             onCardTap: { [weak self] item in self?.handleCardTap(item: item) },
             onToggleAutoHide: { [weak self] in self?.toggleAutoHide() },
             onQuit: { NSApp.terminate(nil) },
-            onDebugDrag: { [weak self] in self?.debugDragFirstItem() }
+            onDismissTransientBanner: { [weak self] in self?.transientBanner = nil }
         )
         popover.show(relativeTo: button, rootView: root)
     }
 
-    private func debugDragFirstItem() {
-        // M4-1 throwaway: validates synthetic command-drag. Removed in M4-3.
-        let items = inventory.controllableItems
-        guard let first = items.first else {
-            Log.app.notice("Debug drag: no items")
-            return
-        }
-        Log.app.info("Debug drag: source=\(NSStringFromRect(first.frame), privacy: .public)")
-        let dragSimulator = self.dragSimulator
-        Task {
-            do {
-                let source = CGPoint(x: first.frame.midX, y: first.frame.midY)
-                let target = CGPoint(x: source.x - 80, y: source.y)
-                try await dragSimulator.simulateDrag(from: source, to: target)
-                Log.app.info("Debug drag: completed")
-            } catch {
-                Log.app.error("Debug drag failed: \(error.localizedDescription, privacy: .public)")
+    private func makeDragQueue() -> DragQueue {
+        DragQueue(
+            simulator: dragSimulator,
+            verifier: { [weak self] item, _ in
+                // Re-enumerate after a short settle; the drag succeeded if the
+                // item still exists and its x-position changed.
+                try? await Task.sleep(nanoseconds: 200_000_000)
+                guard let self else { return false }
+                let live = await MainActor.run { self.enumerator.enumerate() }
+                return live.contains { $0.id == item.id && $0.frame.midX != item.frame.midX }
             }
-        }
+        )
     }
 
     private func handleCardTap(item: MenubarItem) {
-        // M4-3 wires this to the drag queue. For M3-4 (UI shell), just flip zone
-        // in the inventory so the visual state changes — no real drag.
-        let next: Zone = item.zone == .visible ? .sleeved : .visible
-        inventory.setZone(next, forItemID: item.id)
-        Log.app.info("[stub] card tapped: \(item.displayName, privacy: .public) → \(next.rawValue)")
+        guard item.isControllable else { return }
+        inventory.setInFlight(item.id, true)
+        let nextZone: Zone = item.zone == .visible ? .sleeved : .visible
+        Task {
+            // The bar must be expanded so every icon — including sleeved ones —
+            // is on-screen and grabbable by the synthetic drag.
+            if statusBar?.isCollapsed == true {
+                statusBar?.expand()
+                try? await Task.sleep(nanoseconds: 250_000_000)
+            }
+            // Re-read the icon's current on-screen frame; the cached one may be
+            // stale (off-screen) from when the bar was collapsed.
+            let fresh = await freshItem(id: item.id) ?? item
+            let (source, target) = DragGeometry.endpoints(
+                item: fresh,
+                targetZone: nextZone,
+                separatorFrame: statusBar?.separatorButton?.window?.frame,
+                handleFrame: statusBar?.handleButton?.window?.frame
+            )
+            Log.drag.info("Drag: \(item.displayName, privacy: .public) src=\(source.x) tgt=\(target.x)")
+            let result = await dragQueue.enqueue(item: fresh, source: source, target: target)
+            self.inventory.setInFlight(item.id, false)
+            if case .success = result {
+                self.inventory.setZone(nextZone, forItemID: item.id)
+            } else if case let .failure(error) = result {
+                await self.handleDragFailure(item: item, error: error)
+            }
+            self.refreshInventory()
+        }
+    }
+
+    private func freshItem(id: String) async -> MenubarItem? {
+        let enumerator = self.enumerator
+        let raw = await Task.detached(priority: .userInitiated) { enumerator.enumerate() }.value
+        return raw.first { $0.id == id }
+    }
+
+    private func handleDragFailure(item: MenubarItem, error: DragError) async {
+        Log.drag.error(
+            "Drag failed for \(item.displayName, privacy: .public): \(String(describing: error), privacy: .public)"
+        )
+        let count = await dragQueue.consecutiveFailureCount
+        if count >= 3 {
+            persistentBanner = "Auto-drag isn't working on this Mac. Drag icons manually while holding ⌘."
+        } else {
+            transientBanner = "Couldn't move \(item.displayName). Try ⌘+drag manually."
+            Task {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                self.transientBanner = nil
+            }
+        }
     }
 
     private func toggleAutoHide() {
@@ -143,11 +189,19 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
 
     private func refreshInventory() {
         let enumerator = self.enumerator
+        let separatorMinX = statusBar?.separatorButton?.window?.frame.minX
         Task { [weak self] in
-            let items = await Task.detached(priority: .userInitiated) {
+            let raw = await Task.detached(priority: .userInitiated) {
                 enumerator.enumerate()
             }.value
             guard let self else { return }
+            // Derive each item's zone from its physical position so the popover
+            // reflects where icons actually are, not stale persisted intent.
+            let items = raw.map { item -> MenubarItem in
+                var copy = item
+                copy.zone = DragGeometry.physicalZone(forFrame: item.frame, separatorMinX: separatorMinX)
+                return copy
+            }
             self.inventory.apply(liveItems: items)
             Log.app.info("inventory refreshed: \(items.count) items")
         }
