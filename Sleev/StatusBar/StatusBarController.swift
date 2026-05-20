@@ -21,6 +21,21 @@ final class StatusBarController: NSObject {
 
     var onToggle: ((Bool) -> Void)?
 
+    /// Fired when the user right-clicks (or control-clicks) the handle.
+    /// SleevApp uses this to open the popover.
+    var onRightClick: (() -> Void)?
+
+    /// The status item's button — exposed for anchoring the popover window.
+    var handleButton: NSStatusBarButton? {
+        handle.button
+    }
+
+    /// The separator's button — exposed so drag targets can be computed
+    /// relative to it. Items left of the separator are hidden on collapse.
+    var separatorButton: NSStatusBarButton? {
+        separator.button
+    }
+
     init(preferences: Preferences = Preferences()) {
         let bar = NSStatusBar.system
         let naturalSize = SleeveGlyph.naturalSize(forHeight: 14, wrapped: true)
@@ -118,53 +133,20 @@ final class StatusBarController: NSObject {
     // MARK: - Click routing
 
     @objc private func handlePressed() {
-        guard let event = NSApp.currentEvent else { toggle(); return }
-        if event.type == .rightMouseUp || event.modifierFlags.contains(.control) {
-            showContextMenu()
+        let event = NSApp.currentEvent
+        let typeRaw = event.map { Int($0.type.rawValue) } ?? -1
+        let modifiers = event?.modifierFlags.rawValue ?? 0
+        Log.statusBar.info("handlePressed: type=\(typeRaw), modifiers=\(modifiers)")
+        guard let event else { toggle(); return }
+        let isRightClick = event.type == .rightMouseUp
+            || event.type == .rightMouseDown
+            || event.modifierFlags.contains(.control)
+        if isRightClick {
+            let callbackState = self.onRightClick != nil ? "set" : "nil"
+            Log.statusBar.info("handlePressed: routing to onRightClick (\(callbackState))")
+            onRightClick?()
         } else {
             toggle()
-        }
-    }
-
-    private func showContextMenu() {
-        guard let button = handle.button else { return }
-        let menu = contextMenu()
-        let origin = NSPoint(x: 0, y: button.bounds.height + 4)
-        menu.popUp(positioning: nil, at: origin, in: button)
-    }
-
-    private func contextMenu() -> NSMenu {
-        let menu = NSMenu()
-
-        let prefs = Preferences()
-        let autoItem = NSMenuItem(
-            title: prefs.autoHideEnabled ? "Disable Auto Collapse" : "Enable Auto Collapse",
-            action: #selector(toggleAutoHide),
-            keyEquivalent: "t"
-        )
-        autoItem.target = self
-        autoItem.tag = 100
-        menu.addItem(autoItem)
-
-        menu.addItem(.separator())
-
-        menu.addItem(NSMenuItem(
-            title: "Quit sleev",
-            action: #selector(NSApplication.terminate(_:)),
-            keyEquivalent: "q"
-        ))
-
-        return menu
-    }
-
-    @objc private func toggleAutoHide() {
-        var prefs = Preferences()
-        prefs.autoHideEnabled.toggle()
-        Log.statusBar.info("autoHide.enabled toggled -> \(prefs.autoHideEnabled)")
-        if prefs.autoHideEnabled {
-            autoHide.scheduleIfEnabled()
-        } else {
-            autoHide.cancel()
         }
     }
 

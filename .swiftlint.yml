@@ -7,7 +7,6 @@ opt_in_rules:
   - force_unwrapping
 included:
   - Sleev
-  - SleevAgent
   - SleevCore
   - SleevTests
 excluded:

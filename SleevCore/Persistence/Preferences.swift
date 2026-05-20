@@ -13,7 +13,7 @@ public struct Preferences {
     public init(defaults: UserDefaults = AppGroupDefaults.shared()) {
         self.defaults = defaults
         defaults.register(defaults: [
-            Key.autoHideEnabled: true,
+            Key.autoHideEnabled: false,
             Key.autoHideDelay: Self.defaultAutoHideDelay
         ])
     }

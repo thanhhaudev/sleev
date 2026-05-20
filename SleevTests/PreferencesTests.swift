@@ -19,7 +19,7 @@ final class PreferencesTests: XCTestCase {
 
     func test_defaultValues() {
         let prefs = Preferences(defaults: defaults)
-        XCTAssertTrue(prefs.autoHideEnabled)
+        XCTAssertFalse(prefs.autoHideEnabled)
         XCTAssertEqual(prefs.autoHideDelaySeconds, 10.0)
     }
 

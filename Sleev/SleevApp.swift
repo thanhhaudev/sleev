@@ -1,22 +1,33 @@
 import AppKit
+import ServiceManagement
 import SleevCore
+import SwiftUI
 
+@MainActor
 @main
-final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerDelegate {
+final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency OnboardingViewControllerDelegate {
     private enum RunMode {
         case onboardingPreview
         case statusBarPreview
         case real
     }
 
-    private let agent = AgentClient()
-    private let agentLifecycle = AgentLifecycle()
     private let onboardingWindow = OnboardingWindowController()
     private let onboardingVC = OnboardingViewController()
     private let accessibility = AccessibilityService()
+    private let zoneStore = ZoneStore()
+    private let enumerator = MenubarEnumerator()
+    private let dragSimulator = DragSimulator()
+    private var inventory: MenubarInventory!
+    private var popover: PopoverPresenter!
+    private var dragQueue: DragQueue!
+    private var transientBanner: String?
+    private var persistentBanner: String?
     private var statusBar: StatusBarController?
     private var runMode: RunMode = .real
     private var pollTimer: Timer?
+    private var inventoryRefreshTimer: Timer?
+    private var preferences = Preferences()
 
     static func main() {
         let app = NSApplication.shared
@@ -27,7 +38,11 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
     }
 
     func applicationDidFinishLaunching(_: Notification) {
+        inventory = MenubarInventory(store: zoneStore)
+        popover = PopoverPresenter()
+        dragQueue = makeDragQueue()
         Log.app.info("Sleev launched (args=\(CommandLine.arguments.joined(separator: " "), privacy: .public))")
+        try? SMAppService.agent(plistName: "SleevAgent.plist").unregister()
 
         if CommandLine.arguments.contains("--preview-onboarding") {
             runMode = .onboardingPreview
@@ -43,16 +58,6 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
         runMode = .real
         onboardingVC.delegate = self
         onboardingWindow.install(viewController: onboardingVC)
-
-        // Register the agent so it's available when Phase 2 needs it. The agent
-        // is NOT involved in the AX permission flow — UI handles that directly.
-        do {
-            try agentLifecycle.register()
-        } catch {
-            Log.app.fault("AgentLifecycle.register failed: \(error.localizedDescription, privacy: .public)")
-        }
-        agent.connect()
-
         apply(state: accessibility.currentState())
     }
 
@@ -70,27 +75,166 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
             stopPolling()
             onboardingWindow.dismiss()
             if statusBar == nil {
-                statusBar = StatusBarController()
+                let controller = StatusBarController()
+                controller.onRightClick = { [weak self] in self?.openPopover() }
+                statusBar = controller
                 Log.app.info("Status bar installed")
             }
         case .undetermined, .denied:
             statusBar = nil
+            popover.close()
             Log.app.info("Status bar removed")
             onboardingWindow.present()
             startPolling()
         }
     }
 
-    // MARK: - Polling
+    // MARK: - Popover
+
+    private func openPopover() {
+        guard let button = statusBar?.handleButton else { return }
+        refreshInventory()
+        startInventoryRefresh()
+        let root = IconGridView(
+            inventory: inventory,
+            transientBanner: Binding(
+                get: { self.transientBanner },
+                set: { self.transientBanner = $0 }
+            ),
+            persistentBanner: Binding(
+                get: { self.persistentBanner },
+                set: { self.persistentBanner = $0 }
+            ),
+            isAutoHideEnabled: preferences.autoHideEnabled,
+            onCardTap: { [weak self] item in self?.handleCardTap(item: item) },
+            onToggleAutoHide: { [weak self] in self?.toggleAutoHide() },
+            onQuit: { NSApp.terminate(nil) },
+            onDismissTransientBanner: { [weak self] in self?.transientBanner = nil }
+        )
+        popover.show(relativeTo: button, rootView: root)
+    }
+
+    private func makeDragQueue() -> DragQueue {
+        DragQueue(
+            simulator: dragSimulator,
+            verifier: { [weak self] item, _ in
+                // Re-enumerate after a short settle; the drag succeeded if the
+                // item still exists and its x-position changed.
+                try? await Task.sleep(nanoseconds: 200_000_000)
+                guard let self else { return false }
+                let live = await MainActor.run { self.enumerator.enumerate() }
+                return live.contains { $0.id == item.id && $0.frame.midX != item.frame.midX }
+            }
+        )
+    }
+
+    private func handleCardTap(item: MenubarItem) {
+        guard item.isControllable else { return }
+        inventory.setInFlight(item.id, true)
+        let nextZone: Zone = item.zone == .visible ? .sleeved : .visible
+        Task {
+            // The bar must be expanded so every icon — including sleeved ones —
+            // is on-screen and grabbable by the synthetic drag.
+            if statusBar?.isCollapsed == true {
+                statusBar?.expand()
+                try? await Task.sleep(nanoseconds: 250_000_000)
+            }
+            // Re-read the icon's current on-screen frame; the cached one may be
+            // stale (off-screen) from when the bar was collapsed.
+            let fresh = await freshItem(id: item.id) ?? item
+            let (source, target) = DragGeometry.endpoints(
+                item: fresh,
+                targetZone: nextZone,
+                separatorFrame: statusBar?.separatorButton?.window?.frame,
+                handleFrame: statusBar?.handleButton?.window?.frame
+            )
+            Log.drag.info("Drag: \(item.displayName, privacy: .public) src=\(source.x) tgt=\(target.x)")
+            let result = await dragQueue.enqueue(item: fresh, source: source, target: target)
+            self.inventory.setInFlight(item.id, false)
+            if case .success = result {
+                self.inventory.setZone(nextZone, forItemID: item.id)
+            } else if case let .failure(error) = result {
+                await self.handleDragFailure(item: item, error: error)
+            }
+            self.refreshInventory()
+        }
+    }
+
+    private func freshItem(id: String) async -> MenubarItem? {
+        let enumerator = self.enumerator
+        let raw = await Task.detached(priority: .userInitiated) { enumerator.enumerate() }.value
+        return raw.first { $0.id == id }
+    }
+
+    private func handleDragFailure(item: MenubarItem, error: DragError) async {
+        Log.drag.error(
+            "Drag failed for \(item.displayName, privacy: .public): \(String(describing: error), privacy: .public)"
+        )
+        let count = await dragQueue.consecutiveFailureCount
+        if count >= 3 {
+            persistentBanner = "Auto-drag isn't working on this Mac. Drag icons manually while holding ⌘."
+        } else {
+            transientBanner = "Couldn't move \(item.displayName). Try ⌘+drag manually."
+            Task {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                self.transientBanner = nil
+            }
+        }
+    }
+
+    private func toggleAutoHide() {
+        preferences.autoHideEnabled.toggle()
+        Log.app.info("autoHide.enabled toggled -> \(self.preferences.autoHideEnabled)")
+    }
+
+    private func refreshInventory() {
+        let enumerator = self.enumerator
+        let separatorMinX = statusBar?.separatorButton?.window?.frame.minX
+        Task { [weak self] in
+            let raw = await Task.detached(priority: .userInitiated) {
+                enumerator.enumerate()
+            }.value
+            guard let self else { return }
+            // Derive each item's zone from its physical position so the popover
+            // reflects where icons actually are, not stale persisted intent.
+            let items = raw.map { item -> MenubarItem in
+                var copy = item
+                copy.zone = DragGeometry.physicalZone(forFrame: item.frame, separatorMinX: separatorMinX)
+                return copy
+            }
+            self.inventory.apply(liveItems: items)
+            Log.app.info("inventory refreshed: \(items.count) items")
+        }
+    }
+
+    private func startInventoryRefresh() {
+        guard inventoryRefreshTimer == nil else { return }
+        inventoryRefreshTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            MainActor.assumeIsolated {
+                if self.popover.isShown {
+                    self.refreshInventory()
+                } else {
+                    self.stopInventoryRefresh()
+                }
+            }
+        }
+    }
+
+    private func stopInventoryRefresh() {
+        inventoryRefreshTimer?.invalidate()
+        inventoryRefreshTimer = nil
+    }
 
     private func startPolling() {
         guard pollTimer == nil else { return }
         Log.app.info("Polling AX state every 1.5s while onboarding shown")
         pollTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
             guard let self else { return }
-            let state = self.accessibility.currentState()
-            if state == .granted {
-                self.apply(state: .granted)
+            MainActor.assumeIsolated {
+                if self.accessibility.currentState() == .granted {
+                    self.apply(state: .granted)
+                }
             }
         }
     }
@@ -102,8 +246,6 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
         pollTimer = nil
     }
 
-    // MARK: - Previews
-
     private func runOnboardingPreview() {
         onboardingVC.delegate = self
         onboardingWindow.install(viewController: onboardingVC)
@@ -111,11 +253,11 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
     }
 
     private func runStatusBarPreview() {
-        statusBar = StatusBarController()
-        Log.app.info("Status bar preview installed; right-click the chevron for the menu.")
+        let controller = StatusBarController()
+        controller.onRightClick = { [weak self] in self?.openPopover() }
+        statusBar = controller
+        Log.app.info("Status bar preview installed; right-click handle to see popover")
     }
-
-    // MARK: - OnboardingViewControllerDelegate
 
     func onboardingViewControllerDidRequestOpenSettings(_: OnboardingViewController) {
         switch runMode {
@@ -132,9 +274,6 @@ final class SleevApp: NSObject, NSApplicationDelegate, OnboardingViewControllerD
     }
 
     func onboardingViewControllerDidRequestCheckNow(_: OnboardingViewController) {
-        // No longer needed — polling auto-detects. But keep the protocol method
-        // so OnboardingViewController doesn't need to change. Trigger an
-        // immediate check as a convenience.
         if runMode == .real {
             apply(state: accessibility.currentState())
         }

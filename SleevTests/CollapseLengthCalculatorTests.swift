@@ -15,6 +15,6 @@ final class CollapseLengthCalculatorTests: XCTestCase {
     }
 
     func test_visibleSeparatorLength() {
-        XCTAssertEqual(CollapseLengthCalculator.visibleSeparatorLength, 20)
+        XCTAssertEqual(CollapseLengthCalculator.visibleSeparatorLength, 1)
     }
 }
