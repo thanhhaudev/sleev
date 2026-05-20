@@ -33,6 +33,9 @@ public final class MenubarEnumerator {
 
     private func enumerateExtras(for runApp: NSRunningApplication) -> [MenubarItem] {
         let axApp = AXUIElementCreateApplication(runApp.processIdentifier)
+        // Default AX messaging timeout is ~6 seconds; an unresponsive app can stall
+        // the whole enumeration. Cap each app's RPC at 500ms.
+        AXUIElementSetMessagingTimeout(axApp, 0.5)
         var extrasRef: CFTypeRef?
         guard AXUIElementCopyAttributeValue(axApp, "AXExtrasMenuBar" as CFString, &extrasRef) == .success,
               let ref = extrasRef

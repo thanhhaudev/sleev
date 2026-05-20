@@ -17,7 +17,11 @@ struct IconGridView: View {
             Divider()
 
             if inventory.items.isEmpty {
-                emptyState
+                if inventory.isLoading {
+                    loadingState
+                } else {
+                    emptyState
+                }
             } else {
                 LazyVGrid(columns: columns, spacing: 12) {
                     ForEach(inventory.items) { item in
@@ -54,6 +58,18 @@ struct IconGridView: View {
 
     private var pinnedCount: Int {
         inventory.controllableItems.filter { $0.zone == .visible }.count
+    }
+
+    private var loadingState: some View {
+        VStack(spacing: 8) {
+            ProgressView()
+                .controlSize(.small)
+            Text("Loading menubar items\u{2026}")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
     }
 
     private var emptyState: some View {

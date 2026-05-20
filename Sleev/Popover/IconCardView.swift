@@ -78,7 +78,11 @@ struct IconCardView: View {
     @ViewBuilder
     private var iconView: some View {
         if let icon = item.icon {
-            Image(nsImage: templateIcon(icon))
+            // Render at natural fidelity. SwiftUI auto-tints when the NSImage
+            // is flagged isTemplate (true menubar glyphs); colored Dock icons
+            // come through unchanged so apps remain recognizable on the white
+            // active pill and glass inactive pill.
+            Image(nsImage: icon)
                 .resizable()
                 .interpolation(.high)
                 .frame(width: 24, height: 24)
@@ -88,16 +92,6 @@ struct IconCardView: View {
                 .font(.system(size: 22))
                 .foregroundStyle(iconColor)
         }
-    }
-
-    /// Force template rendering so colored app icons render as a monochrome
-    /// silhouette that can be tinted to white (inactive) or the system
-    /// Accent color (active).
-    private func templateIcon(_ source: NSImage) -> NSImage {
-        guard !source.isTemplate else { return source }
-        let copy = source.copy() as? NSImage ?? source
-        copy.isTemplate = true
-        return copy
     }
 
     private var iconColor: Color {

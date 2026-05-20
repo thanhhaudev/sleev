@@ -6,6 +6,10 @@ import Foundation
 public final class MenubarInventory: ObservableObject {
     @Published public private(set) var items: [MenubarItem] = []
     @Published public private(set) var outOfSyncItems: [MenubarItem] = []
+    /// True until the first `apply(liveItems:)` call. Lets the UI show a
+    /// loading state while the initial enumeration is running, instead of
+    /// flashing the empty state.
+    @Published public private(set) var isLoading: Bool = true
 
     public var controllableItems: [MenubarItem] {
         items.filter(\.isControllable)
@@ -42,6 +46,7 @@ public final class MenubarInventory: ObservableObject {
         }
         items = nextItems
         outOfSyncItems = oos
+        isLoading = false
     }
 
     public func setZone(_ zone: Zone, forItemID id: String) {

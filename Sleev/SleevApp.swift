@@ -16,12 +16,14 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
     private let onboardingVC = OnboardingViewController()
     private let accessibility = AccessibilityService()
     private let zoneStore = ZoneStore()
+    private let enumerator = MenubarEnumerator()
     private var inventory: MenubarInventory!
     private var popover: PopoverPresenter!
     private var inFlightIDs: Set<MenubarItem.ID> = []
     private var statusBar: StatusBarController?
     private var runMode: RunMode = .real
     private var pollTimer: Timer?
+    private var inventoryRefreshTimer: Timer?
     private var preferences = Preferences()
 
     static func main() {
@@ -52,7 +54,6 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
         runMode = .real
         onboardingVC.delegate = self
         onboardingWindow.install(viewController: onboardingVC)
-        loadStubInventory()
         apply(state: accessibility.currentState())
     }
 
@@ -88,6 +89,8 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
 
     private func openPopover() {
         guard let button = statusBar?.handleButton else { return }
+        refreshInventory()
+        startInventoryRefresh()
         let root = IconGridView(
             inventory: inventory,
             inFlightIDs: Binding(
@@ -115,84 +118,35 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
         Log.app.info("autoHide.enabled toggled -> \(self.preferences.autoHideEnabled)")
     }
 
-    private func loadStubInventory() {
-        // Stub items for visual review. Replaced by MenubarEnumerator in M3-5.
-        inventory.apply(liveItems: makeStubItems())
+    private func refreshInventory() {
+        let enumerator = self.enumerator
+        Task { [weak self] in
+            let items = await Task.detached(priority: .userInitiated) {
+                enumerator.enumerate()
+            }.value
+            guard let self else { return }
+            self.inventory.apply(liveItems: items)
+            Log.app.info("inventory refreshed: \(items.count) items")
+        }
     }
 
-    // swiftlint:disable:next function_body_length
-    private func makeStubItems() -> [MenubarItem] {
-        [
-            MenubarItem(
-                id: "stub.spotify",
-                bundleID: "com.spotify.client",
-                displayName: "Spotify",
-                icon: stubIcon("music.note"),
-                frame: .zero,
-                zone: .visible,
-                isControllable: true
-            ),
-            MenubarItem(
-                id: "stub.slack",
-                bundleID: "com.tinyspeck.slackmacgap",
-                displayName: "Slack",
-                icon: stubIcon("number"),
-                frame: .zero,
-                zone: .visible,
-                isControllable: true
-            ),
-            MenubarItem(
-                id: "stub.figma",
-                bundleID: "com.figma.Desktop",
-                displayName: "Figma",
-                icon: stubIcon("paintpalette"),
-                frame: .zero,
-                zone: .sleeved,
-                isControllable: true
-            ),
-            MenubarItem(
-                id: "stub.notion",
-                bundleID: "notion.id",
-                displayName: "Notion",
-                icon: stubIcon("note.text"),
-                frame: .zero,
-                zone: .visible,
-                isControllable: true
-            ),
-            MenubarItem(
-                id: "stub.linear",
-                bundleID: "com.linear",
-                displayName: "Linear",
-                icon: stubIcon("chart.bar.doc.horizontal"),
-                frame: .zero,
-                zone: .sleeved,
-                isControllable: true
-            ),
-            MenubarItem(
-                id: "stub.wifi",
-                bundleID: "com.apple.controlcenter.wifi",
-                displayName: "Wi-Fi",
-                icon: stubIcon("wifi"),
-                frame: .zero,
-                zone: .visible,
-                isControllable: true
-            ),
-            MenubarItem(
-                id: "stub.battery",
-                bundleID: "com.apple.controlcenter.battery",
-                displayName: "Battery",
-                icon: stubIcon("battery.75"),
-                frame: .zero,
-                zone: .visible,
-                isControllable: true
-            )
-        ]
+    private func startInventoryRefresh() {
+        guard inventoryRefreshTimer == nil else { return }
+        inventoryRefreshTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            MainActor.assumeIsolated {
+                if self.popover.isShown {
+                    self.refreshInventory()
+                } else {
+                    self.stopInventoryRefresh()
+                }
+            }
+        }
     }
 
-    private func stubIcon(_ symbolName: String) -> NSImage? {
-        let configuration = NSImage.SymbolConfiguration(pointSize: 16, weight: .regular)
-        return NSImage(systemSymbolName: symbolName, accessibilityDescription: nil)?
-            .withSymbolConfiguration(configuration)
+    private func stopInventoryRefresh() {
+        inventoryRefreshTimer?.invalidate()
+        inventoryRefreshTimer = nil
     }
 
     private func startPolling() {
@@ -225,7 +179,6 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
         let controller = StatusBarController()
         controller.onRightClick = { [weak self] in self?.openPopover() }
         statusBar = controller
-        loadStubInventory()
         Log.app.info("Status bar preview installed; right-click handle to see popover")
     }
 
