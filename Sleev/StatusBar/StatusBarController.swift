@@ -18,6 +18,8 @@ final class StatusBarController: NSObject {
     private var collapseLength: CGFloat = CollapseLengthCalculator.collapseLength(
         forScreenWidth: NSScreen.main?.frame.width ?? 1728
     )
+    private let separatorAnimator: SeparatorLengthAnimator
+    private let animationDuration: TimeInterval = 0.25
 
     var onToggle: ((Bool) -> Void)?
 
@@ -43,11 +45,19 @@ final class StatusBarController: NSObject {
         self.separator = bar.statusItem(withLength: CollapseLengthCalculator.visibleSeparatorLength)
         self.handleView = SleeveHandleView(frame: NSRect(origin: .zero, size: naturalSize))
         self.autoHide = AutoHideTimer(preferences: preferences)
+        self.separatorAnimator = SeparatorLengthAnimator(
+            displayLinkSource: handle.button ?? NSView(),
+            initialValue: CollapseLengthCalculator.visibleSeparatorLength
+        )
         super.init()
 
         configureHandle(naturalSize: naturalSize)
         configureSeparator()
         observeScreenChanges()
+
+        separatorAnimator.onValueChange = { [weak self] length in
+            self?.separator.length = length
+        }
 
         handle.autosaveName = "sleev.handle"
         separator.autosaveName = "sleev.separator"
@@ -75,12 +85,12 @@ final class StatusBarController: NSObject {
 
     func expand() {
         guard isCollapsed else { return }
-        separator.length = CollapseLengthCalculator.visibleSeparatorLength
         isCollapsed = false
         handleView.pointsLeft = true
-        Log.statusBar.info("expanded")
         autoHide.scheduleIfEnabled()
         onToggle?(false)
+        Log.statusBar.info("expanded")
+        setSeparatorLength(CollapseLengthCalculator.visibleSeparatorLength)
     }
 
     func collapse() {
@@ -90,12 +100,21 @@ final class StatusBarController: NSObject {
             return
         }
         collapseLength = CollapseLengthCalculator.collapseLength(forScreenWidth: widestScreenWidth)
-        separator.length = collapseLength
         isCollapsed = true
         handleView.pointsLeft = false
-        Log.statusBar.info("collapsed (length=\(self.collapseLength), widest=\(self.widestScreenWidth))")
         autoHide.cancel()
         onToggle?(true)
+        Log.statusBar.info("collapsed (length=\(self.collapseLength), widest=\(self.widestScreenWidth))")
+        setSeparatorLength(collapseLength)
+    }
+
+    /// Drives the separator to `length` — animated, or instant when the
+    /// system Reduce Motion setting is enabled.
+    private func setSeparatorLength(_ length: CGFloat) {
+        let duration = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+            ? 0
+            : animationDuration
+        separatorAnimator.animate(to: length, duration: duration)
     }
 
     /// Points the handle chevron down while the popover is open, and restores
@@ -195,7 +214,7 @@ final class StatusBarController: NSObject {
                 forScreenWidth: self.widestScreenWidth
             )
             if self.isCollapsed {
-                self.separator.length = self.collapseLength
+                self.separatorAnimator.animate(to: self.collapseLength, duration: 0)
             }
             Log.statusBar.info("screen change: collapseLength=\(self.collapseLength)")
         }
