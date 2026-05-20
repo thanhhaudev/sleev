@@ -40,6 +40,7 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
     func applicationDidFinishLaunching(_: Notification) {
         inventory = MenubarInventory(store: zoneStore)
         popover = PopoverPresenter()
+        popover.onVisibilityChanged = { [weak self] open in self?.statusBar?.setPopoverOpen(open) }
         dragQueue = makeDragQueue()
         Log.app.info("Sleev launched (args=\(CommandLine.arguments.joined(separator: " "), privacy: .public))")
         try? SMAppService.agent(plistName: "SleevAgent.plist").unregister()

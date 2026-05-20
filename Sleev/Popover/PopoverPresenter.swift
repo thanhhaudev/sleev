@@ -12,6 +12,10 @@ public final class PopoverPresenter: NSObject {
 
     public private(set) var isShown: Bool = false
 
+    /// Fired with `true` when the popover becomes visible and `false` when it
+    /// closes. SleevApp uses this to point the handle chevron down while open.
+    public var onVisibilityChanged: ((Bool) -> Void)?
+
     override public init() {
         super.init()
     }
@@ -76,11 +80,13 @@ public final class PopoverPresenter: NSObject {
         window = panel
         isShown = true
         installEventMonitors()
+        onVisibilityChanged?(true)
     }
 
     public func close() {
         guard let panel = window else { return }
         removeEventMonitors()
+        onVisibilityChanged?(false)
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.1
             panel.animator().alphaValue = 0

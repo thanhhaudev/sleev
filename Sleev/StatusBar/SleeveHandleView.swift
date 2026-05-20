@@ -16,6 +16,15 @@ final class SleeveHandleView: NSView {
         }
     }
 
+    /// When `true`, the triangle points down — shown while the popover is
+    /// open. Overrides `pointsLeft`.
+    var pointsDown: Bool = false {
+        didSet {
+            guard oldValue != pointsDown else { return }
+            applyTriangleTransform(animated: true)
+        }
+    }
+
     override var intrinsicContentSize: NSSize {
         SleeveGlyph.naturalSize(forHeight: 14, wrapped: true)
     }
@@ -102,8 +111,11 @@ final class SleeveHandleView: NSView {
     }
 
     private func applyTriangleTransform(animated: Bool) {
-        let angle: CGFloat = pointsLeft ? 0 : .pi
-        let newTransform = CATransform3DMakeRotation(angle, 0, 1, 0)
+        let newTransform: CATransform3D = if pointsDown {
+            CATransform3DMakeRotation(.pi / 2, 0, 0, 1)
+        } else {
+            CATransform3DMakeRotation(pointsLeft ? 0 : .pi, 0, 1, 0)
+        }
 
         if animated {
             let anim = CABasicAnimation(keyPath: "transform")

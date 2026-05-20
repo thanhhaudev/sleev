@@ -97,6 +97,12 @@ final class StatusBarController: NSObject {
         onToggle?(true)
     }
 
+    /// Points the handle chevron down while the popover is open, and restores
+    /// it to the collapse/expand direction when the popover closes.
+    func setPopoverOpen(_ open: Bool) {
+        handleView.pointsDown = open
+    }
+
     // MARK: - Setup
 
     private func configureHandle(naturalSize: NSSize) {
