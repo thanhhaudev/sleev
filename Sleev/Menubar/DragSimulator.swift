@@ -30,6 +30,18 @@ public final class DragSimulator: DragSimulating {
             throw DragSimulatorError.noEventSource
         }
 
+        // Decouple the hardware mouse so the synthetic drag does not move the
+        // visible cursor, and show a spinner cursor while the drag runs. The
+        // cursor position is restored afterward as a safety net.
+        let savedCursor = CGEvent(source: nil)?.location
+        CGAssociateMouseAndMouseCursorPosition(0)
+        await SpinnerCursor.start()
+        defer {
+            CGAssociateMouseAndMouseCursorPosition(1)
+            if let savedCursor { CGWarpMouseCursorPosition(savedCursor) }
+            Task { await SpinnerCursor.stop() }
+        }
+
         // Press ⌘.
         try postKey(.command, down: true, source: cgSource)
         try await Task.sleep(nanoseconds: 30_000_000) // 30ms
