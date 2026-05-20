@@ -7,6 +7,7 @@ final class SleeveHandleView: NSView {
     private let pillLayer = CAShapeLayer()
     private let dotsLayer = CAShapeLayer()
     private let triangleLayer = CAShapeLayer()
+    private var currentAngle: CGFloat = 0
 
     /// When `false`, the triangle is rotated 180° (points right).
     var pointsLeft: Bool = true {
@@ -110,25 +111,31 @@ final class SleeveHandleView: NSView {
         triangleLayer.position = triCenter
     }
 
-    private func applyTriangleTransform(animated: Bool) {
-        let newTransform: CATransform3D = if pointsDown {
-            CATransform3DMakeRotation(.pi / 2, 0, 0, 1)
+    /// The triangle's target Z-rotation: pointing left (0), right (π), or down
+    /// (π/2 while the popover is open). All three are in-plane rotations so the
+    /// chevron rotates smoothly between them rather than flipping.
+    private var targetAngle: CGFloat {
+        if pointsDown {
+            .pi / 2
         } else {
-            CATransform3DMakeRotation(pointsLeft ? 0 : .pi, 0, 1, 0)
+            pointsLeft ? 0 : .pi
         }
+    }
 
-        if animated {
-            let anim = CABasicAnimation(keyPath: "transform")
+    private func applyTriangleTransform(animated: Bool) {
+        let newAngle = targetAngle
+        if animated, currentAngle != newAngle {
+            let anim = CABasicAnimation(keyPath: "transform.rotation.z")
             anim.duration = 0.20
             anim.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-            anim.fromValue = triangleLayer.presentation()?.transform ?? triangleLayer.transform
-            anim.toValue = newTransform
-            triangleLayer.add(anim, forKey: "flip")
+            anim.fromValue = currentAngle
+            anim.toValue = newAngle
+            triangleLayer.add(anim, forKey: "rotate")
         }
-
+        currentAngle = newAngle
         CATransaction.begin()
         CATransaction.setDisableActions(true)
-        triangleLayer.transform = newTransform
+        triangleLayer.transform = CATransform3DMakeRotation(newAngle, 0, 0, 1)
         CATransaction.commit()
     }
 }
