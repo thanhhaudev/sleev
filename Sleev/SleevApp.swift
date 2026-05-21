@@ -157,7 +157,9 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
             let result = await dragQueue.enqueue(item: fresh, source: source, target: target)
             self.inventory.setInFlight(item.id, false)
             if case .success = result {
-                self.inventory.setZone(nextZone, forItemID: item.id)
+                withAnimation(.snappy) {
+                    self.inventory.setZone(nextZone, forItemID: item.id)
+                }
             } else if case let .failure(error) = result {
                 await self.handleDragFailure(item: item, error: error)
             }

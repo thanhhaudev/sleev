@@ -16,6 +16,7 @@ struct IconGridView: View {
     let onDismissTransientBanner: () -> Void
 
     private let columns: [GridItem] = Array(repeating: .init(.fixed(64), spacing: 8), count: 4)
+    @Namespace private var cardNamespace
 
     init(
         inventory: MenubarInventory,
@@ -103,6 +104,7 @@ struct IconGridView: View {
                         IconCardView(
                             item: item,
                             isInFlight: inventory.inFlightIDs.contains(item.id),
+                            namespace: cardNamespace,
                             onTap: { onCardTap(item) }
                         )
                     }

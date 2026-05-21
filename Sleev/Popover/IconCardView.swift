@@ -4,6 +4,7 @@ import SwiftUI
 struct IconCardView: View {
     let item: MenubarItem
     let isInFlight: Bool
+    let namespace: Namespace.ID
     let onTap: () -> Void
 
     @State private var isHovering = false
@@ -38,6 +39,7 @@ struct IconCardView: View {
         }
         .frame(width: 64)
         .opacity(cardOpacity)
+        .matchedGeometryEffect(id: item.id, in: namespace)
         .contentShape(Rectangle())
         .onTapGesture {
             if item.isControllable, !isInFlight { onTap() }
