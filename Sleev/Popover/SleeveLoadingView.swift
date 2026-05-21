@@ -17,6 +17,8 @@ struct SleeveLoadingView: View {
     @State private var dotsRevealed = 0
     @State private var isBouncing = false
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         HStack(spacing: glyphSpacing) {
             ForEach(0 ..< 3) { index in
@@ -56,6 +58,11 @@ struct SleeveLoadingView: View {
 
     /// Plays the one-time assembly, then starts the looping bounce.
     private func runIntro() async {
+        if reduceMotion {
+            chevronFlipped = true
+            dotsRevealed = 3
+            return
+        }
         withAnimation(.easeOut(duration: flipDuration)) {
             chevronFlipped = true
         }
