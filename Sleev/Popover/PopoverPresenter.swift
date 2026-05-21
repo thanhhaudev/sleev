@@ -9,6 +9,7 @@ public final class PopoverPresenter: NSObject {
     private var window: NSWindow?
     private var clickMonitor: Any?
     private var escapeMonitor: Any?
+    private var windowMoveObservers: [NSObjectProtocol] = []
 
     public private(set) var isShown: Bool = false
 
@@ -22,6 +23,7 @@ public final class PopoverPresenter: NSObject {
 
     public func show(
         relativeTo button: NSStatusBarButton,
+        alsoDismissOnUserDragOf extraWindows: [NSWindow] = [],
         rootView: some View
     ) {
         if isShown {
@@ -79,7 +81,8 @@ public final class PopoverPresenter: NSObject {
 
         window = panel
         isShown = true
-        installEventMonitors()
+        let dragWindows = extraWindows + [button.window].compactMap { $0 }
+        installEventMonitors(dragWindows: dragWindows)
         onVisibilityChanged?(true)
     }
 
@@ -101,7 +104,7 @@ public final class PopoverPresenter: NSObject {
 
     // MARK: - Event monitors
 
-    private func installEventMonitors() {
+    private func installEventMonitors(dragWindows: [NSWindow]) {
         clickMonitor = NSEvent.addGlobalMonitorForEvents(
             matching: [.leftMouseDown, .rightMouseDown]
         ) { [weak self] event in
@@ -121,6 +124,22 @@ public final class PopoverPresenter: NSObject {
             }
             return event
         }
+        // Close when the user drags one of sleev's status items. The window
+        // also moves on automatic menu bar relayouts, so a move only counts
+        // as a user drag when a mouse button is currently held.
+        for movedWindow in dragWindows {
+            let observer = NotificationCenter.default.addObserver(
+                forName: NSWindow.didMoveNotification,
+                object: movedWindow,
+                queue: .main
+            ) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard NSEvent.pressedMouseButtons != 0 else { return }
+                    self?.close()
+                }
+            }
+            windowMoveObservers.append(observer)
+        }
     }
 
     private func removeEventMonitors() {
@@ -132,6 +151,10 @@ public final class PopoverPresenter: NSObject {
             NSEvent.removeMonitor(token)
             escapeMonitor = nil
         }
+        for observer in windowMoveObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        windowMoveObservers.removeAll()
     }
 }
 

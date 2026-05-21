@@ -112,7 +112,11 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
             onQuit: { NSApp.terminate(nil) },
             onDismissTransientBanner: { [weak self] in self?.transientBanner = nil }
         )
-        popover.show(relativeTo: button, rootView: root)
+        popover.show(
+            relativeTo: button,
+            alsoDismissOnUserDragOf: [statusBar?.separatorButton?.window].compactMap { $0 },
+            rootView: root
+        )
     }
 
     private func makeDragQueue() -> DragQueue {
