@@ -1,13 +1,30 @@
 import SwiftUI
 
 /// Animated loading indicator built from sleev's •••◀ glyph: the chevron flips
-/// in, the three dots appear right-to-left, then the dots bounce in a loop.
+/// in, the three dots appear right-to-left, then the dots bounce in a loop —
+/// with a random deadpan one-liner below.
 struct SleeveLoadingView: View {
-    // Geometry — SleeveGlyph unit ratios with u = 2.5pt.
-    private let dotDiameter: CGFloat = 7.5
-    private let glyphSpacing: CGFloat = 6.25
-    private let triangleSize = CGSize(width: 15, height: 20)
-    private let bounceHeight: CGFloat = 5
+    /// Loading lines, picked at random — deadpan, matching the About tagline.
+    private static let messages = [
+        "Rounding up the menu bar icons.",
+        "Counting icons nobody remembers installing.",
+        "Doing a headcount up top.",
+        "Finding the icons that actually earn their spot.",
+        "Tidying the menu bar. It had it coming.",
+        "Looking for icons hiding behind other icons.",
+        "Negotiating with the menu bar.",
+        "Checking the menu bar. Still crowded up there."
+    ]
+
+    private static func randomMessage() -> String {
+        messages[Int.random(in: 0 ..< messages.count)]
+    }
+
+    // Geometry — SleeveGlyph proportions, scaled down for the loading state.
+    private let dotDiameter: CGFloat = 5.5
+    private let glyphSpacing: CGFloat = 4.5
+    private let triangleSize = CGSize(width: 11, height: 14.5)
+    private let bounceHeight: CGFloat = 4
 
     private let flipDuration: TimeInterval = 0.35
     private let dotRevealDuration: TimeInterval = 0.22
@@ -16,10 +33,25 @@ struct SleeveLoadingView: View {
     @State private var chevronFlipped = false
     @State private var dotsRevealed = 0
     @State private var isBouncing = false
+    @State private var message = SleeveLoadingView.randomMessage()
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
+        VStack(spacing: 12) {
+            glyph
+            Text(message)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Loading menu bar items")
+        .task { await runIntro() }
+    }
+
+    private var glyph: some View {
         HStack(spacing: glyphSpacing) {
             ForEach(0 ..< 3) { index in
                 Circle()
@@ -39,9 +71,6 @@ struct SleeveLoadingView: View {
                 )
                 .opacity(chevronFlipped ? 1 : 0)
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Loading menu bar items")
-        .task { await runIntro() }
     }
 
     /// Dots are revealed right-to-left: the rightmost dot (index 2) first.
@@ -56,7 +85,8 @@ struct SleeveLoadingView: View {
             .delay(Double(2 - index) * dotStagger)
     }
 
-    /// Plays the one-time assembly, then starts the looping bounce.
+    /// Plays the one-time assembly, then starts the looping bounce. With
+    /// Reduce Motion on, jumps straight to the static assembled glyph.
     private func runIntro() async {
         if reduceMotion {
             chevronFlipped = true
