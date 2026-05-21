@@ -10,11 +10,15 @@ final class PreferencesWindowController: NSWindowController, NSWindowDelegate {
         let hosting = NSHostingController(
             rootView: PreferencesView(onAutoHideSettingsChanged: onAutoHideSettingsChanged)
         )
+        // Force a layout pass so the SwiftUI content reports a real fitting
+        // size; the window is then sized to it explicitly.
+        hosting.view.layoutSubtreeIfNeeded()
+
         let window = NSWindow(contentViewController: hosting)
         window.styleMask = [.titled, .closable]
         window.title = "sleev Settings"
         window.isReleasedWhenClosed = false
-        window.setFrameAutosaveName("PreferencesWindow")
+        window.setContentSize(hosting.view.fittingSize)
         super.init(window: window)
         window.delegate = self
     }
