@@ -13,6 +13,7 @@ struct IconGridView: View {
     @State private var autoHideEnabled: Bool
     let onCardTap: (MenubarItem) -> Void
     let onToggleAutoHide: () -> Void
+    let onAbout: () -> Void
     let onQuit: () -> Void
     let onDismissTransientBanner: () -> Void
 
@@ -26,6 +27,7 @@ struct IconGridView: View {
         isAutoHideEnabled: Bool,
         onCardTap: @escaping (MenubarItem) -> Void,
         onToggleAutoHide: @escaping () -> Void,
+        onAbout: @escaping () -> Void,
         onQuit: @escaping () -> Void,
         onDismissTransientBanner: @escaping () -> Void
     ) {
@@ -35,6 +37,7 @@ struct IconGridView: View {
         _autoHideEnabled = State(initialValue: isAutoHideEnabled)
         self.onCardTap = onCardTap
         self.onToggleAutoHide = onToggleAutoHide
+        self.onAbout = onAbout
         self.onQuit = onQuit
         self.onDismissTransientBanner = onDismissTransientBanner
     }
@@ -170,10 +173,7 @@ struct IconGridView: View {
                 }
             Spacer()
             Menu {
-                Button("About sleev") {
-                    NSApp.activate(ignoringOtherApps: true)
-                    NSApp.orderFrontStandardAboutPanel(nil)
-                }
+                Button("About sleev") { onAbout() }
                 Divider()
                 Button("Quit sleev") { onQuit() }
                     .keyboardShortcut("q")

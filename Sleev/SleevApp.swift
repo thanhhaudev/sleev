@@ -112,6 +112,7 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
             isAutoHideEnabled: preferences.autoHideEnabled,
             onCardTap: { [weak self] item in self?.handleCardTap(item: item) },
             onToggleAutoHide: { [weak self] in self?.toggleAutoHide() },
+            onAbout: { [weak self] in self?.presentAbout() },
             onQuit: { NSApp.terminate(nil) },
             onDismissTransientBanner: { [weak self] in self?.transientBanner = nil }
         )
@@ -190,12 +191,6 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
                 self.transientBanner = nil
             }
         }
-    }
-
-    private func toggleAutoHide() {
-        preferences.autoHideEnabled.toggle()
-        Log.app.info("autoHide.enabled toggled -> \(self.preferences.autoHideEnabled)")
-        statusBar?.refreshAutoHideSchedule()
     }
 
     private func refreshInventory() {
@@ -317,5 +312,20 @@ extension SleevApp {
         for (id, zone) in zones where !inventory.inFlightIDs.contains(id) {
             inventory.setZone(zone, forItemID: id)
         }
+    }
+}
+
+// MARK: - Popover actions
+
+extension SleevApp {
+    private func toggleAutoHide() {
+        preferences.autoHideEnabled.toggle()
+        Log.app.info("autoHide.enabled toggled -> \(self.preferences.autoHideEnabled)")
+        statusBar?.refreshAutoHideSchedule()
+    }
+
+    private func presentAbout() {
+        popover.close()
+        AboutPanel.present()
     }
 }
