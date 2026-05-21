@@ -1,9 +1,10 @@
 import AppKit
 import SwiftUI
 
-/// The popover root: a single grid of menubar icons. Tapping a card
-/// sleeves / unsleeves it. Items keep a stable slot regardless of zone, so
-/// toggling one does not reflow the others.
+/// The popover root: menubar icons split into an "In menu bar" section and a
+/// "Sleeved" section. Tapping a card sleeves / unsleeves it. Within each
+/// section items keep their enumeration order, so toggling one does not
+/// reflow its neighbours.
 struct IconGridView: View {
     @ObservedObject var inventory: MenubarInventory
     @Binding var transientBanner: String?
@@ -51,8 +52,54 @@ struct IconGridView: View {
             if inventory.items.isEmpty {
                 if inventory.isLoading { loadingState } else { emptyState }
             } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 14) {
+                        section(title: "In menu bar", items: visibleItems)
+                        section(
+                            title: "Sleeved",
+                            items: sleevedItems,
+                            emptyHint: "Tap an icon to tuck it away."
+                        )
+                    }
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxHeight: 460)
+            }
+        }
+        .padding(14)
+        .frame(width: 320)
+    }
+
+    // MARK: - Sections
+
+    private var visibleItems: [MenubarItem] {
+        inventory.items.filter { $0.zone == .visible }
+    }
+
+    private var sleevedItems: [MenubarItem] {
+        inventory.items.filter { $0.zone == .sleeved }
+    }
+
+    private func section(
+        title: String,
+        items: [MenubarItem],
+        emptyHint: String? = nil
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("\(title.uppercased()) · \(items.count)")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 2)
+
+            if items.isEmpty, let emptyHint {
+                Text(emptyHint)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.tertiary)
+                    .padding(.horizontal, 2)
+                    .padding(.vertical, 4)
+            } else {
                 LazyVGrid(columns: columns, spacing: 12) {
-                    ForEach(inventory.items) { item in
+                    ForEach(items) { item in
                         IconCardView(
                             item: item,
                             isInFlight: inventory.inFlightIDs.contains(item.id),
@@ -62,8 +109,6 @@ struct IconGridView: View {
                 }
             }
         }
-        .padding(14)
-        .frame(width: 320)
     }
 
     // MARK: - States
@@ -94,6 +139,8 @@ struct IconGridView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 20)
     }
+
+    // MARK: - Header
 
     private var header: some View {
         HStack {
