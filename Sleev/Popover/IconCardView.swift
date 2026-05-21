@@ -6,16 +6,12 @@ struct IconCardView: View {
     let isInFlight: Bool
     let onTap: () -> Void
 
+    @State private var isHovering = false
+
     private static let circleDiameter: CGFloat = 52
 
     private var isSleeved: Bool {
         item.zone == .sleeved
-    }
-
-    /// System-wide Accent Color from System Settings → Appearance → Accent.
-    /// Auto-updates when the user changes the system pref.
-    private var systemAccent: Color {
-        Color(nsColor: .controlAccentColor)
     }
 
     var body: some View {
@@ -33,7 +29,6 @@ struct IconCardView: View {
                 }
             }
             .frame(width: Self.circleDiameter, height: Self.circleDiameter)
-            .opacity(item.isControllable ? 1.0 : 0.55)
 
             Text(item.displayName)
                 .font(.system(size: 10))
@@ -42,65 +37,74 @@ struct IconCardView: View {
                 .truncationMode(.tail)
         }
         .frame(width: 64)
+        .opacity(cardOpacity)
         .contentShape(Rectangle())
         .onTapGesture {
             if item.isControllable, !isInFlight { onTap() }
         }
+        .onHover { hovering in
+            isHovering = hovering && item.isControllable && !isInFlight
+        }
+        .help(helpText)
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(item.displayName)
         .accessibilityHint(item.isControllable ? (isSleeved ? "Unsleeve" : "Sleeve") : "Not controllable")
     }
 
-    @ViewBuilder
-    private var circleBackground: some View {
-        if isSleeved {
-            Circle()
-                .fill(Color.white)
-                .shadow(color: Color.black.opacity(0.25), radius: 4, x: 0, y: 1)
-                .overlay(borderOverlay)
-        } else {
-            Circle()
-                .glassEffect(.regular, in: .circle)
-                .overlay(borderOverlay)
-        }
+    /// Sleeved items are dimmed so the popover reads "tucked away"; system
+    /// items that can't be moved are dimmed further and never react to taps.
+    private var cardOpacity: Double {
+        if !item.isControllable { return 0.5 }
+        return isSleeved ? 0.6 : 1.0
     }
 
-    @ViewBuilder
-    private var borderOverlay: some View {
-        if !isSleeved {
-            Circle().strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5)
+    private var helpText: String {
+        item.isControllable
+            ? item.displayName
+            : "\(item.displayName) — system item, can't be sleeved"
+    }
+
+    private var circleBackground: some View {
+        Group {
+            if isSleeved {
+                Circle().fill(.quaternary)
+            } else {
+                Circle().glassEffect(.regular, in: .circle)
+            }
         }
+        .overlay(
+            Circle().strokeBorder(
+                Color.white.opacity(isHovering ? 0.35 : 0.15),
+                lineWidth: isHovering ? 1 : 0.5
+            )
+        )
     }
 
     @ViewBuilder
     private var iconView: some View {
         if let icon = item.icon {
-            // Render at natural fidelity. SwiftUI auto-tints when the NSImage
-            // is flagged isTemplate (SF Symbols and true menubar glyphs);
-            // colored Dock icons come through unchanged so apps remain
-            // recognizable on the white active pill and glass inactive pill.
-            // Aspect-fit keeps non-square symbols (battery, speaker) from
-            // stretching.
+            // foregroundStyle tints template glyphs (SF Symbols, true menubar
+            // glyphs) white; colored Dock icons ignore it and render as-is.
+            // saturation(0) desaturates those colored icons when sleeved so a
+            // tucked-away app reads as muted. Aspect-fit keeps non-square
+            // glyphs (battery, speaker) from stretching.
             Image(nsImage: icon)
                 .resizable()
                 .interpolation(.high)
                 .aspectRatio(contentMode: .fit)
                 .frame(width: iconSize, height: iconSize)
-                .foregroundStyle(iconColor)
+                .foregroundStyle(Color.white)
+                .saturation(isSleeved ? 0 : 1)
         } else {
             Image(systemName: "app.dashed")
                 .font(.system(size: 22))
-                .foregroundStyle(iconColor)
+                .foregroundStyle(Color.white)
         }
     }
 
-    /// Template glyphs (SF Symbols) carry no internal padding, so they render
-    /// a little smaller than Dock icons to keep the grid visually even.
+    /// Template glyphs carry no internal padding, so they render a little
+    /// smaller than Dock icons to keep the grid visually even.
     private var iconSize: CGFloat {
         item.icon?.isTemplate == true ? 20 : 24
-    }
-
-    private var iconColor: Color {
-        isSleeved ? systemAccent : Color.white
     }
 }
