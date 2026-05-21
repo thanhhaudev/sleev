@@ -196,6 +196,7 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
             }.value
             guard let self else { return }
             self.inventory.apply(liveItems: raw)
+            self.reconcileZones(items: raw)
             Log.app.info("inventory refreshed: \(raw.count) items")
         }
     }
@@ -275,5 +276,36 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
     func onboardingViewControllerDidRequestQuit(_: OnboardingViewController) {
         Log.app.info("Quit tapped")
         NSApp.terminate(nil)
+    }
+}
+
+// MARK: - Zone reconciliation
+
+extension SleevApp {
+    /// Updates each on-screen icon's zone from its physical position relative
+    /// to the separator, so the popover reflects manual ⌘-drag rearrangement.
+    /// Runs only while the bar is expanded — collapsed positions are
+    /// off-screen garbage. Icons on other displays keep their stored zone.
+    private func reconcileZones(items: [MenubarItem]) {
+        guard statusBar?.isCollapsed == false,
+              let separatorWindow = statusBar?.separatorButton?.window,
+              let screen = separatorWindow.screen,
+              let primaryHeight = NSScreen.screens.first?.frame.height
+        else { return }
+
+        let separatorAX = ZoneReconciler.appKitRectToAX(
+            separatorWindow.frame, primaryDisplayHeight: primaryHeight
+        )
+        let screenAX = ZoneReconciler.appKitRectToAX(
+            screen.frame, primaryDisplayHeight: primaryHeight
+        )
+        let zones = ZoneReconciler.reconciledZones(
+            items: items,
+            separatorFrame: separatorAX,
+            screenFrame: screenAX
+        )
+        for (id, zone) in zones where !inventory.inFlightIDs.contains(id) {
+            inventory.setZone(zone, forItemID: id)
+        }
     }
 }
