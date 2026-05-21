@@ -76,19 +76,28 @@ struct IconCardView: View {
     private var iconView: some View {
         if let icon = item.icon {
             // Render at natural fidelity. SwiftUI auto-tints when the NSImage
-            // is flagged isTemplate (true menubar glyphs); colored Dock icons
-            // come through unchanged so apps remain recognizable on the white
-            // active pill and glass inactive pill.
+            // is flagged isTemplate (SF Symbols and true menubar glyphs);
+            // colored Dock icons come through unchanged so apps remain
+            // recognizable on the white active pill and glass inactive pill.
+            // Aspect-fit keeps non-square symbols (battery, speaker) from
+            // stretching.
             Image(nsImage: icon)
                 .resizable()
                 .interpolation(.high)
-                .frame(width: 24, height: 24)
+                .aspectRatio(contentMode: .fit)
+                .frame(width: iconSize, height: iconSize)
                 .foregroundStyle(iconColor)
         } else {
             Image(systemName: "app.dashed")
                 .font(.system(size: 22))
                 .foregroundStyle(iconColor)
         }
+    }
+
+    /// Template glyphs (SF Symbols) carry no internal padding, so they render
+    /// a little smaller than Dock icons to keep the grid visually even.
+    private var iconSize: CGFloat {
+        item.icon?.isTemplate == true ? 20 : 24
     }
 
     private var iconColor: Color {
