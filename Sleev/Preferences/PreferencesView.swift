@@ -1,3 +1,4 @@
+import AppKit
 import SleevCore
 import SwiftUI
 
@@ -57,6 +58,9 @@ struct PreferencesView: View {
         .padding(20)
         .frame(width: 420)
         .task { openAtLogin = loginItem.isEnabled }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
+            openAtLogin = loginItem.isEnabled
+        }
         .onChange(of: autoHideEnabled) { _, _ in onAutoHideSettingsChanged() }
         .onChange(of: autoHideDelay) { _, _ in onAutoHideSettingsChanged() }
     }
