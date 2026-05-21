@@ -20,6 +20,21 @@ struct PreferencesView: View {
     @AppStorage(Preferences.Key.autoHideDelay, store: AppGroupDefaults.shared())
     private var autoHideDelay = Preferences.defaultAutoHideDelay
 
+    @AppStorage(Preferences.Key.menuBarShowPill, store: AppGroupDefaults.shared())
+    private var menuBarShowPill = true
+
+    @AppStorage(Preferences.Key.menuBarShowDots, store: AppGroupDefaults.shared())
+    private var menuBarShowDots = true
+
+    @AppStorage(Preferences.Key.menuBarShowChevron, store: AppGroupDefaults.shared())
+    private var menuBarShowChevron = true
+
+    @AppStorage(Preferences.Key.menuBarHandleSize, store: AppGroupDefaults.shared())
+    private var menuBarHandleSize = Preferences.defaultHandleSize
+
+    @AppStorage(Preferences.Key.menuBarSeparatorSize, store: AppGroupDefaults.shared())
+    private var menuBarSeparatorSize = Preferences.defaultSeparatorSize
+
     @State private var openAtLogin = false
     @State private var toggleSleeveHotkey: Hotkey?
     @State private var openPopoverHotkey: Hotkey?
@@ -29,6 +44,7 @@ struct PreferencesView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
             generalSection
+            menuBarSection
             shortcutsSection
             autoHideSection
         }
@@ -122,6 +138,70 @@ struct PreferencesView: View {
             }
             .disabled(!autoHideEnabled)
         }
+    }
+
+    private var menuBarSection: some View {
+        section("Menu bar icon") {
+            settingsRow {
+                Text("Show pill")
+                Spacer()
+                Toggle("Show pill", isOn: $menuBarShowPill)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .disabled(menuBarShowPill && enabledHandleCount == 1)
+            }
+            rowDivider
+            settingsRow {
+                Text("Show three dots")
+                Spacer()
+                Toggle("Show three dots", isOn: $menuBarShowDots)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .disabled(menuBarShowDots && enabledHandleCount == 1)
+            }
+            rowDivider
+            settingsRow {
+                Text("Show chevron")
+                Spacer()
+                Toggle("Show chevron", isOn: $menuBarShowChevron)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .disabled(menuBarShowChevron && enabledHandleCount == 1)
+            }
+            rowDivider
+            sizeRow(
+                "Handle size",
+                value: $menuBarHandleSize,
+                range: 10 ... 18
+            )
+            rowDivider
+            sizeRow(
+                "Separator size",
+                value: $menuBarSeparatorSize,
+                range: 3 ... 12
+            )
+        }
+    }
+
+    private func sizeRow(
+        _ title: String,
+        value: Binding<Double>,
+        range: ClosedRange<Double>
+    ) -> some View {
+        settingsRow {
+            Text(title)
+            Spacer()
+            Slider(value: value, in: range, step: 1)
+                .frame(width: 150)
+            Text("\(Int(value.wrappedValue))px")
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+                .frame(width: 34, alignment: .trailing)
+        }
+    }
+
+    private var enabledHandleCount: Int {
+        [menuBarShowPill, menuBarShowDots, menuBarShowChevron].filter { $0 }.count
     }
 
     // MARK: - Building blocks
