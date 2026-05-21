@@ -11,6 +11,14 @@ import SleevCore
 /// each app that owns a menubar extra exposes its own `AXExtrasMenuBar` attribute.
 /// We enumerate all running apps and collect those extras.
 public final class MenubarEnumerator {
+    /// AXIdentifiers of menu bar extras macOS pins in place. They cannot be
+    /// dragged, so the popover omits them. Values captured by the Task 1
+    /// diagnostic run.
+    private static let excludedAXIdentifiers: Set<String> = [
+        "com.apple.menuextra.controlcenter",
+        "com.apple.menuextra.clock"
+    ]
+
     public init() {}
 
     public func enumerate() -> [MenubarItem] {
@@ -49,26 +57,45 @@ public final class MenubarEnumerator {
         AXUIElementCopyAttributeValue(extrasBar, kAXChildrenAttribute as CFString, &childrenRef)
         guard let elementsArray = childrenRef as? [AXUIElement] else { return [] }
 
-        var items: [MenubarItem] = []
-        for element in elementsArray {
-            if let item = makeItem(from: element) {
-                items.append(item)
-            }
+        // Keep only real, movable icons: drop zero-width phantom elements
+        // (Control Center exposes several) and items the user cannot
+        // reposition (the Control Center icon and the clock).
+        let movable = elementsArray.filter { element in
+            guard let frame = elementFrame(element), frame.width > 0 else { return false }
+            guard let identifier = stringAttribute(element, kAXIdentifierAttribute) else { return true }
+            return !Self.excludedAXIdentifiers.contains(identifier)
         }
-        return items
+        return movable.enumerated().map { index, element in
+            makeItem(from: element, siblingCount: movable.count, index: index)
+        }
     }
 
-    private func makeItem(from element: AXUIElement) -> MenubarItem? {
+    private func makeItem(
+        from element: AXUIElement,
+        siblingCount: Int,
+        index: Int
+    ) -> MenubarItem {
         let owner = owningApp(of: element)
         let bundleID = owner?.bundleIdentifier
-        let displayName = bestDisplayName(element: element, owner: owner, bundleID: bundleID)
+        let axIdentifier = stringAttribute(element, kAXIdentifierAttribute)
+        let displayName = bestDisplayName(
+            element: element,
+            owner: owner,
+            bundleID: bundleID,
+            axIdentifier: axIdentifier
+        )
         let frame = elementFrame(element) ?? .zero
+        let id = MenubarItemID.make(
+            bundleID: bundleID,
+            displayName: displayName,
+            axIdentifier: axIdentifier,
+            siblingCount: siblingCount,
+            index: index
+        )
         // Treat every enumerated item as controllable in the UI. Whether macOS
         // actually allows cmd-drag to move a given item past the sleev separator
         // is validated at drag time by the M4 DragSimulator; failures surface as
         // error banners rather than upfront greying-out.
-        let isControllable = true
-        let id = bundleID ?? "name:\(displayName)"
         return MenubarItem(
             id: id,
             bundleID: bundleID,
@@ -76,28 +103,48 @@ public final class MenubarEnumerator {
             icon: lookupIcon(forBundleID: bundleID),
             frame: frame,
             zone: .visible,
-            isControllable: isControllable
+            isControllable: true
         )
     }
 
     private func bestDisplayName(
         element: AXUIElement,
         owner: NSRunningApplication?,
-        bundleID: String?
+        bundleID: String?,
+        axIdentifier: String?
     ) -> String {
         // 1. Use AX title if non-empty.
         if let axTitle = stringAttribute(element, kAXTitleAttribute), !axTitle.isEmpty {
             return axTitle
         }
-        // 2. Fall back to the owning app's localized name.
+        // 2. System menu extras carry no title; derive a readable name from
+        //    their Accessibility identifier.
+        if let axIdentifier, let name = Self.systemExtraName(fromAXIdentifier: axIdentifier) {
+            return name
+        }
+        // 3. Fall back to the owning app's localized name.
         if let localized = owner?.localizedName, !localized.isEmpty {
             return localized
         }
-        // 3. Last resort: last segment of the bundle ID.
+        // 4. Last resort: last segment of the bundle ID.
         if let bundleID, let last = bundleID.split(separator: ".").last {
             return String(last).capitalized
         }
         return "(untitled)"
+    }
+
+    /// Derives a readable name for a system menu extra (Wi-Fi, Bluetooth, ...)
+    /// from its `com.apple.menuextra.*` Accessibility identifier. Returns nil
+    /// for any other identifier, so third-party items are unaffected.
+    private static func systemExtraName(fromAXIdentifier identifier: String) -> String? {
+        let prefix = "com.apple.menuextra."
+        guard identifier.hasPrefix(prefix) else { return nil }
+        let slug = String(identifier.dropFirst(prefix.count))
+        if slug == "wifi" { return "Wi-Fi" }
+        return slug
+            .split(separator: "-")
+            .map(\.capitalized)
+            .joined(separator: " ")
     }
 
     private func owningApp(of element: AXUIElement) -> NSRunningApplication? {
