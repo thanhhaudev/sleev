@@ -100,7 +100,7 @@ public final class MenubarEnumerator {
             id: id,
             bundleID: bundleID,
             displayName: displayName,
-            icon: lookupIcon(forBundleID: bundleID),
+            icon: systemExtraIcon(forAXIdentifier: axIdentifier) ?? lookupIcon(forBundleID: bundleID),
             frame: frame,
             zone: .visible,
             isControllable: true
@@ -145,6 +145,28 @@ public final class MenubarEnumerator {
             .split(separator: "-")
             .map(\.capitalized)
             .joined(separator: " ")
+    }
+
+    /// Returns an SF Symbol image for a known system menu extra (Wi-Fi,
+    /// Sound, Battery, Now Playing), so the popover shows a recognizable glyph
+    /// instead of the generic Control Center icon. Returns nil for anything
+    /// else — Bluetooth has no SF Symbol and falls back to the generic icon.
+    private func systemExtraIcon(forAXIdentifier axIdentifier: String?) -> NSImage? {
+        guard let axIdentifier else { return nil }
+        let symbolName: String
+        switch axIdentifier {
+        case "com.apple.menuextra.wifi": symbolName = "wifi"
+        case "com.apple.menuextra.sound": symbolName = "speaker.wave.2.fill"
+        case "com.apple.menuextra.battery": symbolName = "battery.100percent"
+        case "com.apple.menuextra.now-playing": symbolName = "play.fill"
+        default: return nil
+        }
+        guard let symbol = NSImage(systemSymbolName: symbolName, accessibilityDescription: nil) else { return nil }
+        let icon = symbol.withSymbolConfiguration(
+            NSImage.SymbolConfiguration(pointSize: 16, weight: .regular)
+        ) ?? symbol
+        icon.isTemplate = true
+        return icon
     }
 
     private func owningApp(of element: AXUIElement) -> NSRunningApplication? {
