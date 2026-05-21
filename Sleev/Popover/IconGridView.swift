@@ -4,16 +4,15 @@ import SwiftUI
 /// The popover root: menubar icons split into an "In menu bar" section and a
 /// "Sleeved" section, each grid wrapped in a bento card with its title above.
 /// Tapping a card sleeves / unsleeves it. Within each section items keep their
-/// enumeration order, so toggling one does not reflow its neighbours. The
-/// auto-hide toggle and overflow menu sit in a footer below the sections.
+/// enumeration order, so toggling one does not reflow its neighbours. An
+/// overflow menu sits in a footer below the sections.
 struct IconGridView: View {
     @ObservedObject var inventory: MenubarInventory
     @Binding var transientBanner: String?
     @Binding var persistentBanner: String?
-    @State private var autoHideEnabled: Bool
     let onCardTap: (MenubarItem) -> Void
-    let onToggleAutoHide: () -> Void
     let onAbout: () -> Void
+    let onOpenSettings: () -> Void
     let onQuit: () -> Void
     let onDismissTransientBanner: () -> Void
 
@@ -24,20 +23,18 @@ struct IconGridView: View {
         inventory: MenubarInventory,
         transientBanner: Binding<String?>,
         persistentBanner: Binding<String?>,
-        isAutoHideEnabled: Bool,
         onCardTap: @escaping (MenubarItem) -> Void,
-        onToggleAutoHide: @escaping () -> Void,
         onAbout: @escaping () -> Void,
+        onOpenSettings: @escaping () -> Void,
         onQuit: @escaping () -> Void,
         onDismissTransientBanner: @escaping () -> Void
     ) {
         _inventory = ObservedObject(wrappedValue: inventory)
         _transientBanner = transientBanner
         _persistentBanner = persistentBanner
-        _autoHideEnabled = State(initialValue: isAutoHideEnabled)
         self.onCardTap = onCardTap
-        self.onToggleAutoHide = onToggleAutoHide
         self.onAbout = onAbout
+        self.onOpenSettings = onOpenSettings
         self.onQuit = onQuit
         self.onDismissTransientBanner = onDismissTransientBanner
     }
@@ -157,17 +154,10 @@ struct IconGridView: View {
 
     private var footer: some View {
         HStack {
-            Toggle("Auto-hide", isOn: $autoHideEnabled)
-                .toggleStyle(.switch)
-                .controlSize(.mini)
-                .font(.system(size: 10))
-                .foregroundStyle(.secondary)
-                .fixedSize()
-                .onChange(of: autoHideEnabled) { _, _ in
-                    onToggleAutoHide()
-                }
             Spacer()
             Menu {
+                Button("Settings\u{2026}") { onOpenSettings() }
+                    .keyboardShortcut(",")
                 Button("About sleev") { onAbout() }
                 Divider()
                 Button("Quit sleev") { onQuit() }

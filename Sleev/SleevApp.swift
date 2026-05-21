@@ -24,10 +24,10 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
     private var transientBanner: String?
     private var persistentBanner: String?
     private var statusBar: StatusBarController?
+    private var preferencesWindow: PreferencesWindowController?
     private var runMode: RunMode = .real
     private var pollTimer: Timer?
     private var inventoryRefreshTimer: Timer?
-    private var preferences = Preferences()
 
     static func main() {
         let app = NSApplication.shared
@@ -109,10 +109,9 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
                 get: { self.persistentBanner },
                 set: { self.persistentBanner = $0 }
             ),
-            isAutoHideEnabled: preferences.autoHideEnabled,
             onCardTap: { [weak self] item in self?.handleCardTap(item: item) },
-            onToggleAutoHide: { [weak self] in self?.toggleAutoHide() },
             onAbout: { [weak self] in self?.presentAbout() },
+            onOpenSettings: { [weak self] in self?.openSettings() },
             onQuit: { NSApp.terminate(nil) },
             onDismissTransientBanner: { [weak self] in self?.transientBanner = nil }
         )
@@ -318,14 +317,20 @@ extension SleevApp {
 // MARK: - Popover actions
 
 extension SleevApp {
-    private func toggleAutoHide() {
-        preferences.autoHideEnabled.toggle()
-        Log.app.info("autoHide.enabled toggled -> \(self.preferences.autoHideEnabled)")
-        statusBar?.refreshAutoHideSchedule()
-    }
-
     private func presentAbout() {
         popover.close()
         AboutPanel.present()
+    }
+
+    private func openSettings() {
+        popover.close()
+        if preferencesWindow == nil {
+            preferencesWindow = PreferencesWindowController(
+                onAutoHideSettingsChanged: { [weak self] in
+                    self?.statusBar?.refreshAutoHideSchedule()
+                }
+            )
+        }
+        preferencesWindow?.present()
     }
 }
