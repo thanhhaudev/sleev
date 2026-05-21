@@ -80,6 +80,9 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
                 controller.onRightClick = { [weak self] in self?.openPopover() }
                 statusBar = controller
                 Log.app.info("Status bar installed")
+                // Pre-warm the inventory now so the first popover open shows the
+                // grid immediately instead of waiting through a cold enumeration.
+                refreshInventory()
             }
         case .undetermined, .denied:
             statusBar = nil
