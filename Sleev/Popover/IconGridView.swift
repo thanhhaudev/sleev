@@ -61,10 +61,12 @@ struct IconGridView: View {
                 }
             }
 
-            Divider()
-            footer
+            VStack(spacing: 6) {
+                Divider()
+                footer
+            }
         }
-        .padding(14)
+        .padding(EdgeInsets(top: 14, leading: 14, bottom: 10, trailing: 14))
         .frame(width: 284)
     }
 
@@ -156,7 +158,7 @@ struct IconGridView: View {
         HStack {
             Button { onQuit() } label: {
                 Image(systemName: "power")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
@@ -170,7 +172,7 @@ struct IconGridView: View {
                 Button("About sleev") { onAbout() }
             } label: {
                 Image(systemName: "ellipsis")
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(.secondary)
             }
             .menuStyle(.borderlessButton)

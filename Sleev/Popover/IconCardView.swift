@@ -32,7 +32,7 @@ struct IconCardView: View {
             .frame(width: Self.circleDiameter, height: Self.circleDiameter)
 
             Text(item.displayName)
-                .font(.system(size: 10))
+                .font(.system(size: 9))
                 .foregroundStyle(Color.white.opacity(0.75))
                 .lineLimit(1)
                 .truncationMode(.tail)
