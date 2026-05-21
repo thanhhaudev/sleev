@@ -13,7 +13,7 @@ APP := $(shell find $(BUILD_PATTERN) -name $(APP_NAME) -type d 2>/dev/null | hea
 
 .PHONY: help generate build test lint format lint-fix app-icon \
         preview-onboarding preview-statusbar \
-        install uninstall run clean ci pr-checks all
+        install uninstall run clean ci pr-checks dmg all
 
 help:
 	@echo "sleev — developer targets"
@@ -25,6 +25,7 @@ help:
 	@echo "  make format              swiftformat (in-place rewrites)"
 	@echo "  make app-icon            regenerate the app icon assets"
 	@echo "  make ci                  generate + lint + build + test (mirrors GitHub Actions)"
+	@echo "  make dmg                 archive Release + package build/Sleev-<version>.dmg"
 	@echo ""
 	@echo "  make preview-onboarding  launch Sleev.app --preview-onboarding"
 	@echo "  make preview-statusbar   launch Sleev.app --preview-statusbar"
@@ -57,6 +58,26 @@ app-icon:
 
 ci: lint generate build test
 	@echo "✓ Full CI pipeline passed locally"
+
+# Package a distributable disk image from a Release archive.
+# Not notarized — the README documents the first-launch Gatekeeper bypass.
+dmg: generate
+	@set -e; \
+	VERSION=$$(grep 'MARKETING_VERSION:' project.yml | head -1 | sed -E 's/.*"([^"]+)".*/\1/'); \
+	echo "Packaging sleev $$VERSION..."; \
+	rm -rf build/Sleev.xcarchive build/dmg-staging "build/Sleev-$$VERSION.dmg"; \
+	mkdir -p build/dmg-staging; \
+	xcodebuild archive \
+		-scheme $(SCHEME) \
+		-configuration Release \
+		-destination 'generic/platform=macOS' \
+		-archivePath build/Sleev.xcarchive \
+		-allowProvisioningUpdates; \
+	cp -R "build/Sleev.xcarchive/Products/Applications/$(APP_NAME)" build/dmg-staging/; \
+	ln -s /Applications build/dmg-staging/Applications; \
+	hdiutil create -volname "sleev" -srcfolder build/dmg-staging -ov -format UDZO "build/Sleev-$$VERSION.dmg"; \
+	rm -rf build/dmg-staging build/Sleev.xcarchive; \
+	echo "✓ build/Sleev-$$VERSION.dmg"
 
 # Preview modes — run the freshly built binary directly (no install needed).
 # Kills any existing Sleev preview process first so you don't end up with
