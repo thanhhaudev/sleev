@@ -51,18 +51,14 @@ struct IconGridView: View {
             if inventory.items.isEmpty {
                 if inventory.isLoading { loadingState } else { emptyState }
             } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 14) {
-                        section(title: "In menu bar", items: visibleItems)
-                        section(
-                            title: "Sleeved",
-                            items: sleevedItems,
-                            emptyHint: "Tap an icon to tuck it away."
-                        )
-                    }
+                VStack(alignment: .leading, spacing: 14) {
+                    section(title: "In menu bar", items: visibleItems)
+                    section(
+                        title: "Sleeved",
+                        items: sleevedItems,
+                        emptyHint: "Tap an icon to tuck it away."
+                    )
                 }
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxHeight: 460)
             }
 
             Divider()
