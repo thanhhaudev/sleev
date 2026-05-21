@@ -154,13 +154,20 @@ struct IconGridView: View {
 
     private var footer: some View {
         HStack {
+            Button { onQuit() } label: {
+                Image(systemName: "power")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .keyboardShortcut("q")
+            .help("Quit sleev")
+
             Spacer()
+
             Menu {
                 Button("Settings\u{2026}") { onOpenSettings() }
                 Button("About sleev") { onAbout() }
-                Divider()
-                Button("Quit sleev") { onQuit() }
-                    .keyboardShortcut("q")
             } label: {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 12, weight: .medium))
