@@ -11,11 +11,13 @@ public struct Preferences {
         public static let menuBarShowChevron = "sleev.preferences.menuBar.showChevron"
         public static let menuBarHandleSize = "sleev.preferences.menuBar.handleSize"
         public static let menuBarSeparatorSize = "sleev.preferences.menuBar.separatorSize"
+        public static let menuBarSeparatorOpacity = "sleev.preferences.menuBar.separatorOpacity"
     }
 
     public static let defaultAutoHideDelay: TimeInterval = 10.0
     public static let defaultHandleSize: Double = 14
     public static let defaultSeparatorSize: Double = 6
+    public static let defaultSeparatorOpacity: Double = 100
 
     private let defaults: UserDefaults
 
@@ -28,7 +30,8 @@ public struct Preferences {
             Key.menuBarShowDots: true,
             Key.menuBarShowChevron: true,
             Key.menuBarHandleSize: Self.defaultHandleSize,
-            Key.menuBarSeparatorSize: Self.defaultSeparatorSize
+            Key.menuBarSeparatorSize: Self.defaultSeparatorSize,
+            Key.menuBarSeparatorOpacity: Self.defaultSeparatorOpacity
         ])
     }
 
@@ -75,6 +78,11 @@ public struct Preferences {
     public var menuBarSeparatorSize: Double {
         get { defaults.double(forKey: Key.menuBarSeparatorSize) }
         set { defaults.set(newValue, forKey: Key.menuBarSeparatorSize) }
+    }
+
+    public var menuBarSeparatorOpacity: Double {
+        get { defaults.double(forKey: Key.menuBarSeparatorOpacity) }
+        set { defaults.set(newValue, forKey: Key.menuBarSeparatorOpacity) }
     }
 
     private func hotkey(forKey key: String) -> Hotkey? {

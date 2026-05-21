@@ -47,7 +47,9 @@ final class StatusBarController: NSObject {
             showsChevron: preferences.menuBarShowChevron
         )
         self.handle = bar.statusItem(withLength: naturalSize.width)
-        self.separator = bar.statusItem(withLength: CollapseLengthCalculator.visibleSeparatorLength)
+        self.separator = bar.statusItem(withLength: CollapseLengthCalculator.visibleSeparatorLength(
+            forDotDiameter: CGFloat(preferences.menuBarSeparatorSize)
+        ))
         self.handleView = SleeveHandleView(frame: NSRect(origin: .zero, size: naturalSize))
         self.autoHide = AutoHideTimer(preferences: preferences)
         super.init()
@@ -86,7 +88,9 @@ final class StatusBarController: NSObject {
 
     func expand() {
         guard isCollapsed else { return }
-        separator.length = CollapseLengthCalculator.visibleSeparatorLength
+        separator.length = CollapseLengthCalculator.visibleSeparatorLength(
+            forDotDiameter: CGFloat(Preferences().menuBarSeparatorSize)
+        )
         isCollapsed = false
         handleView.pointsLeft = true
         Log.statusBar.info("expanded")
@@ -131,6 +135,7 @@ final class StatusBarController: NSObject {
     func refreshAppearance() {
         let preferences = Preferences()
         applyHandleAppearance(preferences)
+        applySeparatorAppearance(preferences)
     }
 
     private func applyHandleAppearance(_ preferences: Preferences) {
@@ -171,17 +176,15 @@ final class StatusBarController: NSObject {
     }
 
     private func configureSeparator() {
-        guard let button = separator.button else { return }
-        button.title = ""
-        // A real image is what earns the separator a slot in the status-item
-        // row. Without visible content the status item is orphaned off-screen
-        // and widening it on collapse hides nothing.
-        button.image = Self.separatorDotImage()
+        separator.button?.title = ""
+        applySeparatorAppearance(Preferences())
     }
 
-    /// A small round dot, template-rendered so the menu bar tints it.
-    private static func separatorDotImage() -> NSImage {
-        let diameter: CGFloat = 6
+    /// A round dot at the configured diameter, template-rendered so the menu
+    /// bar tints it. A real image is what earns the separator a slot in the
+    /// status-item row — without visible content the status item is orphaned
+    /// off-screen and widening it on collapse hides nothing.
+    private static func separatorDotImage(diameter: CGFloat) -> NSImage {
         let image = NSImage(
             size: NSSize(width: diameter, height: diameter),
             flipped: false
@@ -192,6 +195,15 @@ final class StatusBarController: NSObject {
         }
         image.isTemplate = true
         return image
+    }
+
+    private func applySeparatorAppearance(_ preferences: Preferences) {
+        let diameter = CGFloat(preferences.menuBarSeparatorSize)
+        separator.button?.image = Self.separatorDotImage(diameter: diameter)
+        separator.button?.alphaValue = CGFloat(preferences.menuBarSeparatorOpacity) / 100.0
+        if !isCollapsed {
+            separator.length = CollapseLengthCalculator.visibleSeparatorLength(forDotDiameter: diameter)
+        }
     }
 
     /// Width of the widest connected display. The collapsed separator must be

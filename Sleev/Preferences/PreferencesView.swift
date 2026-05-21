@@ -36,6 +36,9 @@ struct PreferencesView: View {
     @AppStorage(Preferences.Key.menuBarSeparatorSize, store: AppGroupDefaults.shared())
     private var menuBarSeparatorSize = Preferences.defaultSeparatorSize
 
+    @AppStorage(Preferences.Key.menuBarSeparatorOpacity, store: AppGroupDefaults.shared())
+    private var menuBarSeparatorOpacity = Preferences.defaultSeparatorOpacity
+
     @State private var openAtLogin = false
     @State private var toggleSleeveHotkey: Hotkey?
     @State private var openPopoverHotkey: Hotkey?
@@ -66,6 +69,8 @@ struct PreferencesView: View {
         .onChange(of: menuBarShowDots) { _, _ in onMenuBarAppearanceChanged() }
         .onChange(of: menuBarShowChevron) { _, _ in onMenuBarAppearanceChanged() }
         .onChange(of: menuBarHandleSize) { _, _ in onMenuBarAppearanceChanged() }
+        .onChange(of: menuBarSeparatorSize) { _, _ in onMenuBarAppearanceChanged() }
+        .onChange(of: menuBarSeparatorOpacity) { _, _ in onMenuBarAppearanceChanged() }
     }
 
     // MARK: - Sections
@@ -174,34 +179,36 @@ struct PreferencesView: View {
                     .disabled(menuBarShowChevron && enabledHandleCount == 1)
             }
             rowDivider
-            sizeRow(
-                "Handle size",
-                value: $menuBarHandleSize,
-                range: 10 ... 18
-            )
+            sliderRow("Handle size", value: $menuBarHandleSize, range: 10 ... 18)
             rowDivider
-            sizeRow(
-                "Separator size",
-                value: $menuBarSeparatorSize,
-                range: 3 ... 12
+            sliderRow("Separator size", value: $menuBarSeparatorSize, range: 3 ... 12)
+            rowDivider
+            sliderRow(
+                "Separator opacity",
+                value: $menuBarSeparatorOpacity,
+                range: 20 ... 100,
+                step: 5,
+                unit: "%"
             )
         }
     }
 
-    private func sizeRow(
+    private func sliderRow(
         _ title: String,
         value: Binding<Double>,
-        range: ClosedRange<Double>
+        range: ClosedRange<Double>,
+        step: Double = 1,
+        unit: String = "px"
     ) -> some View {
         settingsRow {
             Text(title)
             Spacer()
-            Slider(value: value, in: range, step: 1)
+            Slider(value: value, in: range, step: step)
                 .frame(width: 150)
-            Text("\(Int(value.wrappedValue))px")
+            Text("\(Int(value.wrappedValue))\(unit)")
                 .monospacedDigit()
                 .foregroundStyle(.secondary)
-                .frame(width: 34, alignment: .trailing)
+                .frame(width: 38, alignment: .trailing)
         }
     }
 
