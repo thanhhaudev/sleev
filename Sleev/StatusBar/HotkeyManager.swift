@@ -14,8 +14,10 @@ enum HotkeyAction: UInt32, CaseIterable {
 final class HotkeyManager {
     var onPressed: ((HotkeyAction) -> Void)?
 
+    private var hotkeys: [HotkeyAction: Hotkey] = [:]
     private var registered: [HotkeyAction: EventHotKeyRef] = [:]
     private var handlerRef: EventHandlerRef?
+    private var isSuspended = false
     private static let signature: OSType = 0x736C_6576 // 'slev'
 
     init() {
@@ -42,14 +44,38 @@ final class HotkeyManager {
         }
     }
 
-    /// Unregisters the action's current hotkey (if any) and registers `hotkey`.
+    /// Sets the hotkey for an action and registers it immediately — unless a
+    /// shortcut is currently being recorded (see `suspendAll()`), in which case
+    /// it is stored and registered once recording finishes.
     func update(_ hotkey: Hotkey?, for action: HotkeyAction) {
-        if let existing = registered[action] {
-            UnregisterEventHotKey(existing)
-            registered[action] = nil
+        hotkeys[action] = hotkey
+        unregister(action)
+        if !isSuspended, let hotkey {
+            register(hotkey, for: action)
         }
-        guard let hotkey else { return }
+    }
 
+    /// Unregisters every hotkey while a shortcut is being recorded, so the combo
+    /// the user types is not also fired as an action.
+    func suspendAll() {
+        guard !isSuspended else { return }
+        isSuspended = true
+        for ref in registered.values {
+            UnregisterEventHotKey(ref)
+        }
+        registered.removeAll()
+    }
+
+    /// Re-registers every stored hotkey once recording finishes.
+    func resumeAll() {
+        guard isSuspended else { return }
+        isSuspended = false
+        for (action, hotkey) in hotkeys {
+            register(hotkey, for: action)
+        }
+    }
+
+    private func register(_ hotkey: Hotkey, for action: HotkeyAction) {
         let hotKeyID = EventHotKeyID(signature: Self.signature, id: action.rawValue)
         var ref: EventHotKeyRef?
         let status = RegisterEventHotKey(
@@ -64,6 +90,13 @@ final class HotkeyManager {
             registered[action] = ref
         } else {
             Log.statusBar.error("Hotkey registration failed for action \(action.rawValue) (status=\(status))")
+        }
+    }
+
+    private func unregister(_ action: HotkeyAction) {
+        if let ref = registered[action] {
+            UnregisterEventHotKey(ref)
+            registered[action] = nil
         }
     }
 }

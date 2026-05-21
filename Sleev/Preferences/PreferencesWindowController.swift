@@ -9,12 +9,14 @@ import SwiftUI
 final class PreferencesWindowController: NSWindowController, NSWindowDelegate {
     init(
         onAutoHideSettingsChanged: @escaping () -> Void,
-        onHotkeyChanged: @escaping (HotkeyAction, Hotkey?) -> Void
+        onHotkeyChanged: @escaping (HotkeyAction, Hotkey?) -> Void,
+        onRecordingActiveChanged: @escaping (Bool) -> Void
     ) {
         let hosting = NSHostingController(
             rootView: PreferencesView(
                 onAutoHideSettingsChanged: onAutoHideSettingsChanged,
-                onHotkeyChanged: onHotkeyChanged
+                onHotkeyChanged: onHotkeyChanged,
+                onRecordingActiveChanged: onRecordingActiveChanged
             )
         )
         // Force a layout pass so the SwiftUI content reports a real fitting
@@ -23,7 +25,7 @@ final class PreferencesWindowController: NSWindowController, NSWindowDelegate {
 
         let window = NSWindow(contentViewController: hosting)
         window.styleMask = [.titled, .closable]
-        window.title = "sleev Settings"
+        window.title = "Settings"
         window.isReleasedWhenClosed = false
         window.setContentSize(hosting.view.fittingSize)
         super.init(window: window)

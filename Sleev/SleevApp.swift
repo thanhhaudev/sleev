@@ -359,6 +359,13 @@ extension SleevApp {
                 },
                 onHotkeyChanged: { [weak self] action, hotkey in
                     self?.persistHotkey(hotkey, for: action)
+                },
+                onRecordingActiveChanged: { [weak self] active in
+                    if active {
+                        self?.hotkeyManager.suspendAll()
+                    } else {
+                        self?.hotkeyManager.resumeAll()
+                    }
                 }
             )
         }
