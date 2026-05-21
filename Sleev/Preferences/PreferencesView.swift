@@ -1,8 +1,8 @@
 import SleevCore
 import SwiftUI
 
-/// The Preferences window content. v1 has a single Auto-hide section; later
-/// features add their own grouped sections here.
+/// The Preferences window content — a General section and an Auto-hide section;
+/// later features add their own grouped sections here.
 ///
 /// Laid out with `VStack` + `GroupBox` (not a `.grouped` `Form`) so the view
 /// has an intrinsic height — the window is hosted directly in an `NSWindow`,
@@ -16,8 +16,22 @@ struct PreferencesView: View {
     @AppStorage(Preferences.Key.autoHideDelay, store: AppGroupDefaults.shared())
     private var autoHideDelay = Preferences.defaultAutoHideDelay
 
+    @State private var openAtLogin = false
+    private let loginItem = LoginItemService()
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            GroupBox("General") {
+                VStack(alignment: .leading, spacing: 12) {
+                    Toggle("Open at login", isOn: Binding(
+                        get: { openAtLogin },
+                        set: { setOpenAtLogin($0) }
+                    ))
+                }
+                .padding(8)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
             GroupBox("Auto-hide") {
                 VStack(alignment: .leading, spacing: 12) {
                     Toggle("Hide menu bar icons automatically", isOn: $autoHideEnabled)
@@ -42,7 +56,20 @@ struct PreferencesView: View {
         }
         .padding(20)
         .frame(width: 420)
+        .task { openAtLogin = loginItem.isEnabled }
         .onChange(of: autoHideEnabled) { _, _ in onAutoHideSettingsChanged() }
         .onChange(of: autoHideDelay) { _, _ in onAutoHideSettingsChanged() }
+    }
+
+    /// Applies the toggle through `LoginItemService`; on failure, logs and
+    /// resets the toggle to the true system state.
+    private func setOpenAtLogin(_ enabled: Bool) {
+        do {
+            try loginItem.setEnabled(enabled)
+            openAtLogin = enabled
+        } catch {
+            Log.app.error("Login item update failed: \(String(describing: error), privacy: .public)")
+            openAtLogin = loginItem.isEnabled
+        }
     }
 }
