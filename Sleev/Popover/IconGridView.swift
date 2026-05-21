@@ -157,7 +157,6 @@ struct IconGridView: View {
             Spacer()
             Menu {
                 Button("Settings\u{2026}") { onOpenSettings() }
-                    .keyboardShortcut(",")
                 Button("About sleev") { onAbout() }
                 Divider()
                 Button("Quit sleev") { onQuit() }
