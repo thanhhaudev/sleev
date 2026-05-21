@@ -58,6 +58,7 @@ struct HotkeyRecorder: View {
     }
 
     private func startRecording() {
+        guard !isRecording else { return }
         isRecording = true
         caretVisible = true
         withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
