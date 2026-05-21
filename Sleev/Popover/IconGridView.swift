@@ -132,14 +132,9 @@ struct IconGridView: View {
     // MARK: - States
 
     private var loadingState: some View {
-        VStack(spacing: 8) {
-            ProgressView().controlSize(.small)
-            Text("Loading menubar items\u{2026}")
-                .font(.system(size: 11))
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
+        SleeveLoadingView()
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 32)
     }
 
     private var emptyState: some View {
