@@ -9,7 +9,7 @@ public final class PopoverPresenter: NSObject {
     private var window: NSWindow?
     private var clickMonitor: Any?
     private var escapeMonitor: Any?
-    private var windowMoveObservers: [NSObjectProtocol] = []
+    private var statusItemClickMonitor: Any?
 
     public private(set) var isShown: Bool = false
 
@@ -124,21 +124,17 @@ public final class PopoverPresenter: NSObject {
             }
             return event
         }
-        // Close when the user drags one of sleev's status items. The window
-        // also moves on automatic menu bar relayouts, so a move only counts
-        // as a user drag when a mouse button is currently held.
-        for movedWindow in dragWindows {
-            let observer = NotificationCenter.default.addObserver(
-                forName: NSWindow.didMoveNotification,
-                object: movedWindow,
-                queue: .main
-            ) { [weak self] _ in
-                MainActor.assumeIsolated {
-                    guard NSEvent.pressedMouseButtons != 0 else { return }
-                    self?.close()
-                }
+        // The global monitor above only sees clicks routed to other apps. A
+        // click on one of sleev's own status items (the handle or separator)
+        // is a local event, caught here — this dismisses the popover the
+        // moment the user grabs a status item, whether to click or drag it.
+        statusItemClickMonitor = NSEvent.addLocalMonitorForEvents(
+            matching: [.leftMouseDown]
+        ) { [weak self] event in
+            if let eventWindow = event.window, dragWindows.contains(where: { $0 === eventWindow }) {
+                DispatchQueue.main.async { self?.close() }
             }
-            windowMoveObservers.append(observer)
+            return event
         }
     }
 
@@ -151,10 +147,10 @@ public final class PopoverPresenter: NSObject {
             NSEvent.removeMonitor(token)
             escapeMonitor = nil
         }
-        for observer in windowMoveObservers {
-            NotificationCenter.default.removeObserver(observer)
+        if let token = statusItemClickMonitor {
+            NSEvent.removeMonitor(token)
+            statusItemClickMonitor = nil
         }
-        windowMoveObservers.removeAll()
     }
 }
 
