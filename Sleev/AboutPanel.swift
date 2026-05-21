@@ -1,7 +1,7 @@
 import AppKit
 
 /// Presents the standard macOS About panel, customised with a tagline and a
-/// GitHub link. The app icon, name, and version are filled in from the bundle.
+/// clickable GitHub mark. The app icon, name, and version come from the bundle.
 enum AboutPanel {
     static let repositoryURL: URL = {
         guard let url = URL(string: "https://github.com/thanhhaudev/sleev") else {
@@ -12,32 +12,47 @@ enum AboutPanel {
 
     static func present() {
         NSApp.activate(ignoringOtherApps: true)
-        NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
+        NSApp.orderFrontStandardAboutPanel(options: [.credits: credits, .version: ""])
     }
 
-    /// Tagline + clickable GitHub link, shown in the panel's credits area.
+    /// Tagline followed by the GitHub mark, which links to the repository.
     private static var credits: NSAttributedString {
         let paragraph = NSMutableParagraphStyle()
         paragraph.alignment = .center
 
-        let baseAttributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 11),
-            .foregroundColor: NSColor.secondaryLabelColor,
-            .paragraphStyle: paragraph
-        ]
-
         let text = NSMutableAttributedString(
             string: "Hides the menu bar icons nobody clicks.\n\n",
-            attributes: baseAttributes
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 11),
+                .foregroundColor: NSColor.secondaryLabelColor,
+                .paragraphStyle: paragraph
+            ]
         )
 
-        var linkAttributes = baseAttributes
-        linkAttributes[.link] = repositoryURL
-        text.append(NSAttributedString(
-            string: "github.com/thanhhaudev/sleev",
-            attributes: linkAttributes
-        ))
+        if let mark = githubMark {
+            let attachment = NSTextAttachment()
+            attachment.image = mark
+            attachment.bounds = CGRect(origin: .zero, size: mark.size)
+            let icon = NSMutableAttributedString(attachment: attachment)
+            icon.addAttributes(
+                [.link: repositoryURL, .paragraphStyle: paragraph],
+                range: NSRange(location: 0, length: icon.length)
+            )
+            text.append(icon)
+        }
 
         return text
+    }
+
+    /// The GitHub mark asset, tinted so it reads on a light or dark panel.
+    private static var githubMark: NSImage? {
+        guard let base = NSImage(named: "github") else { return nil }
+        let size = NSSize(width: 18, height: 18)
+        return NSImage(size: size, flipped: false) { rect in
+            base.draw(in: rect)
+            NSColor.secondaryLabelColor.set()
+            rect.fill(using: .sourceAtop)
+            return true
+        }
     }
 }

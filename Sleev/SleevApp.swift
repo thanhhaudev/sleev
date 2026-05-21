@@ -113,7 +113,6 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
             onCardTap: { [weak self] item in self?.handleCardTap(item: item) },
             onToggleAutoHide: { [weak self] in self?.toggleAutoHide() },
             onAbout: { [weak self] in self?.presentAbout() },
-            onOpenRepository: { [weak self] in self?.openRepository() },
             onQuit: { NSApp.terminate(nil) },
             onDismissTransientBanner: { [weak self] in self?.transientBanner = nil }
         )
@@ -328,10 +327,5 @@ extension SleevApp {
     private func presentAbout() {
         popover.close()
         AboutPanel.present()
-    }
-
-    private func openRepository() {
-        popover.close()
-        NSWorkspace.shared.open(AboutPanel.repositoryURL)
     }
 }
