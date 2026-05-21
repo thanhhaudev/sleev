@@ -2,9 +2,10 @@ import AppKit
 import SwiftUI
 
 /// The popover root: menubar icons split into an "In menu bar" section and a
-/// "Sleeved" section. Tapping a card sleeves / unsleeves it. Within each
-/// section items keep their enumeration order, so toggling one does not
-/// reflow its neighbours.
+/// "Sleeved" section, each grid wrapped in a bento card with its title above.
+/// Tapping a card sleeves / unsleeves it. Within each section items keep their
+/// enumeration order, so toggling one does not reflow its neighbours. The
+/// auto-hide toggle and overflow menu sit in a footer below the sections.
 struct IconGridView: View {
     @ObservedObject var inventory: MenubarInventory
     @Binding var transientBanner: String?
@@ -47,9 +48,6 @@ struct IconGridView: View {
                 ErrorBanner(severity: .warning, message: message, onDismiss: onDismissTransientBanner)
             }
 
-            header
-            Divider()
-
             if inventory.items.isEmpty {
                 if inventory.isLoading { loadingState } else { emptyState }
             } else {
@@ -66,9 +64,12 @@ struct IconGridView: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .frame(maxHeight: 460)
             }
+
+            Divider()
+            footer
         }
         .padding(14)
-        .frame(width: 320)
+        .frame(width: 340)
     }
 
     // MARK: - Sections
@@ -86,31 +87,47 @@ struct IconGridView: View {
         items: [MenubarItem],
         emptyHint: String? = nil
     ) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             Text("\(title.uppercased()) · \(items.count)")
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 2)
 
-            if items.isEmpty, let emptyHint {
-                Text(emptyHint)
-                    .font(.system(size: 11))
-                    .foregroundStyle(.tertiary)
-                    .padding(.horizontal, 2)
-                    .padding(.vertical, 4)
-            } else {
-                LazyVGrid(columns: columns, spacing: 12) {
-                    ForEach(items) { item in
-                        IconCardView(
-                            item: item,
-                            isInFlight: inventory.inFlightIDs.contains(item.id),
-                            namespace: cardNamespace,
-                            onTap: { onCardTap(item) }
-                        )
+            sectionCard {
+                if items.isEmpty, let emptyHint {
+                    Text(emptyHint)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.tertiary)
+                } else {
+                    LazyVGrid(columns: columns, spacing: 12) {
+                        ForEach(items) { item in
+                            IconCardView(
+                                item: item,
+                                isInFlight: inventory.inFlightIDs.contains(item.id),
+                                namespace: cardNamespace,
+                                onTap: { onCardTap(item) }
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+
+    /// Wraps a section's grid (or empty hint) in a rounded bento card so each
+    /// zone reads as a distinct grouped panel on the popover material.
+    private func sectionCard(@ViewBuilder content: () -> some View) -> some View {
+        content()
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.white.opacity(0.06))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.5)
+            )
     }
 
     // MARK: - States
@@ -142,14 +159,14 @@ struct IconGridView: View {
         .padding(.vertical, 20)
     }
 
-    // MARK: - Header
+    // MARK: - Footer
 
-    private var header: some View {
+    private var footer: some View {
         HStack {
             Toggle("Auto-hide", isOn: $autoHideEnabled)
                 .toggleStyle(.switch)
-                .controlSize(.small)
-                .font(.system(size: 11))
+                .controlSize(.mini)
+                .font(.system(size: 10))
                 .foregroundStyle(.secondary)
                 .fixedSize()
                 .onChange(of: autoHideEnabled) { _, _ in
