@@ -14,6 +14,7 @@ struct IconGridView: View {
     let onCardTap: (MenubarItem) -> Void
     let onToggleAutoHide: () -> Void
     let onAbout: () -> Void
+    let onOpenRepository: () -> Void
     let onQuit: () -> Void
     let onDismissTransientBanner: () -> Void
 
@@ -28,6 +29,7 @@ struct IconGridView: View {
         onCardTap: @escaping (MenubarItem) -> Void,
         onToggleAutoHide: @escaping () -> Void,
         onAbout: @escaping () -> Void,
+        onOpenRepository: @escaping () -> Void,
         onQuit: @escaping () -> Void,
         onDismissTransientBanner: @escaping () -> Void
     ) {
@@ -38,6 +40,7 @@ struct IconGridView: View {
         self.onCardTap = onCardTap
         self.onToggleAutoHide = onToggleAutoHide
         self.onAbout = onAbout
+        self.onOpenRepository = onOpenRepository
         self.onQuit = onQuit
         self.onDismissTransientBanner = onDismissTransientBanner
     }
@@ -161,7 +164,7 @@ struct IconGridView: View {
     // MARK: - Footer
 
     private var footer: some View {
-        HStack {
+        HStack(spacing: 10) {
             Toggle("Auto-hide", isOn: $autoHideEnabled)
                 .toggleStyle(.switch)
                 .controlSize(.mini)
@@ -172,6 +175,15 @@ struct IconGridView: View {
                     onToggleAutoHide()
                 }
             Spacer()
+            Button(action: onOpenRepository) {
+                Image("github")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 13, height: 13)
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("View sleev on GitHub")
             Menu {
                 Button("About sleev") { onAbout() }
                 Divider()
