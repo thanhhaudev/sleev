@@ -20,6 +20,7 @@ struct PreferencesView: View {
     @State private var openAtLogin = false
     @State private var toggleSleeveHotkey: Hotkey?
     @State private var openPopoverHotkey: Hotkey?
+    @State private var recordingAction: HotkeyAction?
     private let loginItem = LoginItemService()
 
     var body: some View {
@@ -40,7 +41,11 @@ struct PreferencesView: View {
                     HStack {
                         Text("Toggle sleeve")
                         Spacer()
-                        HotkeyRecorder(hotkey: toggleSleeveHotkey) { newValue in
+                        HotkeyRecorder(
+                            id: HotkeyAction.toggleSleeve,
+                            activeRecorder: $recordingAction,
+                            hotkey: toggleSleeveHotkey
+                        ) { newValue in
                             toggleSleeveHotkey = newValue
                             onHotkeyChanged(.toggleSleeve, newValue)
                         }
@@ -51,7 +56,11 @@ struct PreferencesView: View {
                     HStack {
                         Text("Open popover")
                         Spacer()
-                        HotkeyRecorder(hotkey: openPopoverHotkey) { newValue in
+                        HotkeyRecorder(
+                            id: HotkeyAction.openPopover,
+                            activeRecorder: $recordingAction,
+                            hotkey: openPopoverHotkey
+                        ) { newValue in
                             openPopoverHotkey = newValue
                             onHotkeyChanged(.openPopover, newValue)
                         }

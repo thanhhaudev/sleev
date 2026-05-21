@@ -6,7 +6,12 @@ import SwiftUI
 /// A field-style control for recording a global keyboard shortcut. Click the
 /// field to record; press a combo with at least one of ⌘/⌥/⌃; Escape cancels;
 /// the "✕" clears a recorded shortcut.
-struct HotkeyRecorder: View {
+///
+/// `activeRecorder` is shared across sibling recorders so only one records at a
+/// time — when another recorder starts, this one stops.
+struct HotkeyRecorder<ID: Hashable>: View {
+    let id: ID
+    @Binding var activeRecorder: ID?
     let hotkey: Hotkey?
     let onChange: (Hotkey?) -> Void
 
@@ -27,6 +32,9 @@ struct HotkeyRecorder: View {
             }
         }
         .onDisappear { stopRecording() }
+        .onChange(of: activeRecorder) { _, newValue in
+            if newValue != id, isRecording { stopRecording() }
+        }
     }
 
     private var field: some View {
@@ -60,6 +68,7 @@ struct HotkeyRecorder: View {
     private func startRecording() {
         guard !isRecording else { return }
         isRecording = true
+        activeRecorder = id
         caretVisible = true
         withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) {
             caretVisible = false
@@ -76,6 +85,9 @@ struct HotkeyRecorder: View {
             NSEvent.removeMonitor(monitor)
         }
         monitor = nil
+        if activeRecorder == id {
+            activeRecorder = nil
+        }
     }
 
     private func handleRecordingEvent(_ event: NSEvent) {
