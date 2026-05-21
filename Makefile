@@ -11,7 +11,7 @@ APP_NAME := Sleev.app
 BUILD_PATTERN := $(HOME)/Library/Developer/Xcode/DerivedData/Sleev-*/Build/Products/$(CONFIG)
 APP := $(shell find $(BUILD_PATTERN) -name $(APP_NAME) -type d 2>/dev/null | head -1)
 
-.PHONY: help generate build test lint format lint-fix \
+.PHONY: help generate build test lint format lint-fix app-icon \
         preview-onboarding preview-statusbar \
         install uninstall run clean ci pr-checks all
 
@@ -23,6 +23,7 @@ help:
 	@echo "  make test                xcodebuild test (3 unit tests)"
 	@echo "  make lint                swiftlint --strict + swiftformat --lint"
 	@echo "  make format              swiftformat (in-place rewrites)"
+	@echo "  make app-icon            regenerate the app icon assets"
 	@echo "  make ci                  generate + lint + build + test (mirrors GitHub Actions)"
 	@echo ""
 	@echo "  make preview-onboarding  launch Sleev.app --preview-onboarding"
@@ -50,6 +51,9 @@ lint:
 
 format:
 	swiftformat .
+
+app-icon:
+	swift Tools/generate-app-icon.swift
 
 ci: lint generate build test
 	@echo "✓ Full CI pipeline passed locally"
