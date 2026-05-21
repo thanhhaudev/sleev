@@ -25,6 +25,7 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
     private var persistentBanner: String?
     private var statusBar: StatusBarController?
     private var preferencesWindow: PreferencesWindowController?
+    private let hotkeyManager = HotkeyManager()
     private var runMode: RunMode = .real
     private var pollTimer: Timer?
     private var inventoryRefreshTimer: Timer?
@@ -44,6 +45,14 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
         dragQueue = makeDragQueue()
         Log.app.info("Sleev launched (args=\(CommandLine.arguments.joined(separator: " "), privacy: .public))")
         try? SMAppService.agent(plistName: "SleevAgent.plist").unregister()
+
+        hotkeyManager.onPressed = { [weak self] action in
+            switch action {
+            case .toggleSleeve: self?.statusBar?.toggle()
+            case .openPopover: self?.openPopover()
+            }
+        }
+        applyHotkeys()
 
         if CommandLine.arguments.contains("--preview-onboarding") {
             runMode = .onboardingPreview
@@ -256,7 +265,11 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
         statusBar = controller
         Log.app.info("Status bar preview installed; right-click handle to see popover")
     }
+}
 
+// MARK: - OnboardingViewControllerDelegate
+
+extension SleevApp {
     func onboardingViewControllerDidRequestOpenSettings(_: OnboardingViewController) {
         switch runMode {
         case .onboardingPreview, .statusBarPreview:
@@ -322,12 +335,30 @@ extension SleevApp {
         AboutPanel.present()
     }
 
+    private func applyHotkeys() {
+        let preferences = Preferences()
+        hotkeyManager.update(preferences.toggleSleeveHotkey, for: .toggleSleeve)
+        hotkeyManager.update(preferences.openPopoverHotkey, for: .openPopover)
+    }
+
+    private func persistHotkey(_ hotkey: Hotkey?, for action: HotkeyAction) {
+        var preferences = Preferences()
+        switch action {
+        case .toggleSleeve: preferences.toggleSleeveHotkey = hotkey
+        case .openPopover: preferences.openPopoverHotkey = hotkey
+        }
+        hotkeyManager.update(hotkey, for: action)
+    }
+
     private func openSettings() {
         popover.close()
         if preferencesWindow == nil {
             preferencesWindow = PreferencesWindowController(
                 onAutoHideSettingsChanged: { [weak self] in
                     self?.statusBar?.refreshAutoHideSchedule()
+                },
+                onHotkeyChanged: { [weak self] action, hotkey in
+                    self?.persistHotkey(hotkey, for: action)
                 }
             )
         }

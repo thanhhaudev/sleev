@@ -1,4 +1,5 @@
 import AppKit
+import SleevCore
 import SwiftUI
 
 /// Hosts the Preferences window. The app is an accessory (LSUIElement), so the
@@ -6,9 +7,15 @@ import SwiftUI
 /// `.accessory` when it closes — matching `OnboardingWindowController`.
 @MainActor
 final class PreferencesWindowController: NSWindowController, NSWindowDelegate {
-    init(onAutoHideSettingsChanged: @escaping () -> Void) {
+    init(
+        onAutoHideSettingsChanged: @escaping () -> Void,
+        onHotkeyChanged: @escaping (HotkeyAction, Hotkey?) -> Void
+    ) {
         let hosting = NSHostingController(
-            rootView: PreferencesView(onAutoHideSettingsChanged: onAutoHideSettingsChanged)
+            rootView: PreferencesView(
+                onAutoHideSettingsChanged: onAutoHideSettingsChanged,
+                onHotkeyChanged: onHotkeyChanged
+            )
         )
         // Force a layout pass so the SwiftUI content reports a real fitting
         // size; the window is then sized to it explicitly.
