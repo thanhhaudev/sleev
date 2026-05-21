@@ -2,7 +2,8 @@ import Carbon
 import SleevCore
 
 /// The global-hotkey-bound actions. The raw value is used as the Carbon
-/// `EventHotKeyID.id`, so a pressed hotkey is routed back to its action.
+/// `EventHotKeyID.id`, so a pressed hotkey is routed back to its action —
+/// do not reorder or reuse the raw values.
 enum HotkeyAction: UInt32, CaseIterable {
     case toggleSleeve = 1
     case openPopover = 2
@@ -30,6 +31,15 @@ final class HotkeyManager {
             Unmanaged.passUnretained(self).toOpaque(),
             &handlerRef
         )
+    }
+
+    deinit {
+        for ref in registered.values {
+            UnregisterEventHotKey(ref)
+        }
+        if let handlerRef {
+            RemoveEventHandler(handlerRef)
+        }
     }
 
     /// Unregisters the action's current hotkey (if any) and registers `hotkey`.
