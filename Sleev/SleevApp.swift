@@ -190,6 +190,7 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
     private func toggleAutoHide() {
         preferences.autoHideEnabled.toggle()
         Log.app.info("autoHide.enabled toggled -> \(self.preferences.autoHideEnabled)")
+        statusBar?.refreshAutoHideSchedule()
     }
 
     private func refreshInventory() {

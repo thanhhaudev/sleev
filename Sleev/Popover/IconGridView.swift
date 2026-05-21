@@ -8,13 +8,33 @@ struct IconGridView: View {
     @ObservedObject var inventory: MenubarInventory
     @Binding var transientBanner: String?
     @Binding var persistentBanner: String?
-    let isAutoHideEnabled: Bool
+    @State private var autoHideEnabled: Bool
     let onCardTap: (MenubarItem) -> Void
     let onToggleAutoHide: () -> Void
     let onQuit: () -> Void
     let onDismissTransientBanner: () -> Void
 
     private let columns: [GridItem] = Array(repeating: .init(.fixed(64), spacing: 8), count: 4)
+
+    init(
+        inventory: MenubarInventory,
+        transientBanner: Binding<String?>,
+        persistentBanner: Binding<String?>,
+        isAutoHideEnabled: Bool,
+        onCardTap: @escaping (MenubarItem) -> Void,
+        onToggleAutoHide: @escaping () -> Void,
+        onQuit: @escaping () -> Void,
+        onDismissTransientBanner: @escaping () -> Void
+    ) {
+        _inventory = ObservedObject(wrappedValue: inventory)
+        _transientBanner = transientBanner
+        _persistentBanner = persistentBanner
+        _autoHideEnabled = State(initialValue: isAutoHideEnabled)
+        self.onCardTap = onCardTap
+        self.onToggleAutoHide = onToggleAutoHide
+        self.onQuit = onQuit
+        self.onDismissTransientBanner = onDismissTransientBanner
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -77,10 +97,13 @@ struct IconGridView: View {
 
     private var header: some View {
         HStack {
-            Button(action: onToggleAutoHide) {
+            Button {
+                autoHideEnabled.toggle()
+                onToggleAutoHide()
+            } label: {
                 HStack(spacing: 5) {
                     Circle()
-                        .fill(isAutoHideEnabled ? Color.green : Color.red)
+                        .fill(autoHideEnabled ? Color.green : Color.red)
                         .frame(width: 6, height: 6)
                     Text("Auto-hide")
                         .font(.system(size: 11))

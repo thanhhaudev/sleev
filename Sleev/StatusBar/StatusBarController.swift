@@ -104,6 +104,17 @@ final class StatusBarController: NSObject {
         handleView.pointsDown = open
     }
 
+    /// Re-arms or cancels the auto-hide countdown after the popover toggles the
+    /// preference — a freshly enabled auto-hide must start counting immediately,
+    /// not wait for the next expand().
+    func refreshAutoHideSchedule() {
+        if isCollapsed {
+            autoHide.cancel()
+        } else {
+            autoHide.scheduleIfEnabled()
+        }
+    }
+
     // MARK: - Setup
 
     private func configureHandle(naturalSize: NSSize) {
