@@ -9,7 +9,7 @@ struct IconCardView: View {
 
     @State private var isHovering = false
 
-    private static let circleDiameter: CGFloat = 52
+    private static let circleDiameter: CGFloat = 38
 
     private var isSleeved: Bool {
         item.zone == .sleeved
@@ -24,7 +24,7 @@ struct IconCardView: View {
                 if isInFlight {
                     Circle()
                         .fill(.thinMaterial)
-                        .frame(width: 24, height: 24)
+                        .frame(width: 20, height: 20)
                     ProgressView()
                         .controlSize(.small)
                 }
@@ -37,7 +37,7 @@ struct IconCardView: View {
                 .lineLimit(1)
                 .truncationMode(.tail)
         }
-        .frame(width: 64)
+        .frame(width: 50)
         .opacity(cardOpacity)
         .matchedGeometryEffect(id: item.id, in: namespace)
         .contentShape(Rectangle())
@@ -99,7 +99,7 @@ struct IconCardView: View {
                 .saturation(isSleeved ? 0 : 1)
         } else {
             Image(systemName: "app.dashed")
-                .font(.system(size: 22))
+                .font(.system(size: 16))
                 .foregroundStyle(Color.white)
         }
     }
@@ -107,6 +107,6 @@ struct IconCardView: View {
     /// Template glyphs carry no internal padding, so they render a little
     /// smaller than Dock icons to keep the grid visually even.
     private var iconSize: CGFloat {
-        item.icon?.isTemplate == true ? 20 : 24
+        item.icon?.isTemplate == true ? 15 : 17
     }
 }

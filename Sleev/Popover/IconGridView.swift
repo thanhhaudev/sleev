@@ -16,7 +16,7 @@ struct IconGridView: View {
     let onQuit: () -> Void
     let onDismissTransientBanner: () -> Void
 
-    private let columns: [GridItem] = Array(repeating: .init(.fixed(64), spacing: 8), count: 4)
+    private let columns: [GridItem] = Array(repeating: .init(.fixed(50), spacing: 8), count: 4)
     @Namespace private var cardNamespace
 
     init(
@@ -69,7 +69,7 @@ struct IconGridView: View {
             footer
         }
         .padding(14)
-        .frame(width: 340)
+        .frame(width: 284)
     }
 
     // MARK: - Sections
