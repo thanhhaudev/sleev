@@ -299,31 +299,30 @@ extension SleevApp {
 // MARK: - Zone reconciliation
 
 extension SleevApp {
-    /// Updates each on-screen icon's zone from its physical position relative
-    /// to the separator, so the popover reflects manual ⌘-drag rearrangement.
-    /// Runs only while the bar is expanded — collapsed positions are
-    /// off-screen garbage. Icons on other displays keep their stored zone.
+    /// Updates each on-screen icon's zone from its horizontal position
+    /// relative to the separator, so the popover reflects manual ⌘-drag
+    /// rearrangement. Runs only while the bar is expanded — when collapsed the
+    /// separator is ballooned and its position is meaningless. Icons on other
+    /// displays fall outside the separator screen's x-range and keep their
+    /// stored zone.
     private func reconcileZones(items: [MenubarItem]) {
         guard statusBar?.isCollapsed == false,
               let separatorWindow = statusBar?.separatorButton?.window,
-              let screen = separatorWindow.screen,
-              let primaryHeight = NSScreen.screens.first?.frame.height
+              let screen = separatorWindow.screen ?? NSScreen.main
         else { return }
 
-        let separatorAX = ZoneReconciler.appKitRectToAX(
-            separatorWindow.frame, primaryDisplayHeight: primaryHeight
-        )
-        let screenAX = ZoneReconciler.appKitRectToAX(
-            screen.frame, primaryDisplayHeight: primaryHeight
-        )
+        let separatorMidX = separatorWindow.frame.midX
         let zones = ZoneReconciler.reconciledZones(
             items: items,
-            separatorFrame: separatorAX,
-            screenFrame: screenAX
+            separatorMidX: separatorMidX,
+            screenXRange: screen.frame.minX ... screen.frame.maxX
         )
         for (id, zone) in zones where !inventory.inFlightIDs.contains(id) {
             inventory.setZone(zone, forItemID: id)
         }
+        Log.app.info(
+            "reconcileZones: separatorMidX=\(separatorMidX), \(zones.count) items on the separator's screen"
+        )
     }
 }
 
