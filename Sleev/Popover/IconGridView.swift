@@ -144,28 +144,33 @@ struct IconGridView: View {
 
     private var header: some View {
         HStack {
-            Button {
-                autoHideEnabled.toggle()
-                onToggleAutoHide()
-            } label: {
-                HStack(spacing: 5) {
-                    Circle()
-                        .fill(autoHideEnabled ? Color.green : Color.red)
-                        .frame(width: 6, height: 6)
-                    Text("Auto-hide")
-                        .font(.system(size: 11))
-                        .foregroundStyle(.secondary)
+            Toggle("Auto-hide", isOn: $autoHideEnabled)
+                .toggleStyle(.switch)
+                .controlSize(.small)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .fixedSize()
+                .onChange(of: autoHideEnabled) { _, _ in
+                    onToggleAutoHide()
                 }
-            }
-            .buttonStyle(.plain)
             Spacer()
-            Button(action: onQuit) {
-                Image(systemName: "power")
+            Menu {
+                Button("About sleev") {
+                    NSApp.activate(ignoringOtherApps: true)
+                    NSApp.orderFrontStandardAboutPanel(nil)
+                }
+                Divider()
+                Button("Quit sleev") { onQuit() }
+                    .keyboardShortcut("q")
+            } label: {
+                Image(systemName: "ellipsis")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.secondary)
             }
-            .buttonStyle(.plain)
-            .help("Quit sleev")
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help("More options")
         }
     }
 }
