@@ -366,6 +366,9 @@ extension SleevApp {
                     } else {
                         self?.hotkeyManager.resumeAll()
                     }
+                },
+                onMenuBarAppearanceChanged: { [weak self] in
+                    self?.statusBar?.refreshAppearance()
                 }
             )
         }

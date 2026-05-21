@@ -13,6 +13,8 @@ final class StatusBarController: NSObject {
     private let handleView: SleeveHandleView
     private let autoHide: AutoHideTimer
     private var screenObserver: NSObjectProtocol?
+    private var handleWidthConstraint: NSLayoutConstraint?
+    private var handleHeightConstraint: NSLayoutConstraint?
 
     private(set) var isCollapsed: Bool = false
     private var collapseLength: CGFloat = CollapseLengthCalculator.collapseLength(
@@ -38,12 +40,21 @@ final class StatusBarController: NSObject {
 
     init(preferences: Preferences = Preferences()) {
         let bar = NSStatusBar.system
-        let naturalSize = SleeveGlyph.naturalSize(forHeight: 14, wrapped: true)
+        let naturalSize = SleeveGlyph.naturalSize(
+            forHeight: CGFloat(preferences.menuBarHandleSize),
+            showsPill: preferences.menuBarShowPill,
+            showsDots: preferences.menuBarShowDots,
+            showsChevron: preferences.menuBarShowChevron
+        )
         self.handle = bar.statusItem(withLength: naturalSize.width)
         self.separator = bar.statusItem(withLength: CollapseLengthCalculator.visibleSeparatorLength)
         self.handleView = SleeveHandleView(frame: NSRect(origin: .zero, size: naturalSize))
         self.autoHide = AutoHideTimer(preferences: preferences)
         super.init()
+
+        handleView.showsPill = preferences.menuBarShowPill
+        handleView.showsDots = preferences.menuBarShowDots
+        handleView.showsChevron = preferences.menuBarShowChevron
 
         configureHandle(naturalSize: naturalSize)
         configureSeparator()
@@ -115,6 +126,28 @@ final class StatusBarController: NSObject {
         }
     }
 
+    /// Re-reads the menu-bar appearance preferences and rebuilds the handle.
+    /// Called when the Settings window changes an appearance setting.
+    func refreshAppearance() {
+        let preferences = Preferences()
+        applyHandleAppearance(preferences)
+    }
+
+    private func applyHandleAppearance(_ preferences: Preferences) {
+        handleView.showsPill = preferences.menuBarShowPill
+        handleView.showsDots = preferences.menuBarShowDots
+        handleView.showsChevron = preferences.menuBarShowChevron
+        let naturalSize = SleeveGlyph.naturalSize(
+            forHeight: CGFloat(preferences.menuBarHandleSize),
+            showsPill: preferences.menuBarShowPill,
+            showsDots: preferences.menuBarShowDots,
+            showsChevron: preferences.menuBarShowChevron
+        )
+        handle.length = naturalSize.width
+        handleWidthConstraint?.constant = naturalSize.width
+        handleHeightConstraint?.constant = naturalSize.height
+    }
+
     // MARK: - Setup
 
     private func configureHandle(naturalSize: NSSize) {
@@ -125,11 +158,15 @@ final class StatusBarController: NSObject {
         button.image = nil
         handleView.translatesAutoresizingMaskIntoConstraints = false
         button.addSubview(handleView)
+        let widthConstraint = handleView.widthAnchor.constraint(equalToConstant: naturalSize.width)
+        let heightConstraint = handleView.heightAnchor.constraint(equalToConstant: naturalSize.height)
+        handleWidthConstraint = widthConstraint
+        handleHeightConstraint = heightConstraint
         NSLayoutConstraint.activate([
             handleView.centerXAnchor.constraint(equalTo: button.centerXAnchor),
             handleView.centerYAnchor.constraint(equalTo: button.centerYAnchor),
-            handleView.widthAnchor.constraint(equalToConstant: naturalSize.width),
-            handleView.heightAnchor.constraint(equalToConstant: naturalSize.height)
+            widthConstraint,
+            heightConstraint
         ])
     }
 

@@ -22,6 +22,33 @@ enum SleeveGlyph {
         return NSSize(width: glyph.width + 14, height: glyph.height + 4)
     }
 
+    /// The natural size for a handle that shows only the requested elements.
+    /// When neither dots nor chevron is shown, a minimum content width keeps
+    /// the handle a clickable target.
+    static func naturalSize(
+        forHeight height: CGFloat,
+        showsPill: Bool,
+        showsDots: Bool,
+        showsChevron: Bool
+    ) -> NSSize {
+        let unit = height / 14.0
+        let dotDiameter = 3.0 * unit
+        let dotGap = 2.5 * unit
+        let triWidth = 6.0 * unit
+        let groupGap = dotGap
+        let dotsTotalWidth = dotDiameter * 3 + dotGap * 2
+
+        var content: CGFloat = 0
+        if showsDots { content += dotsTotalWidth }
+        if showsChevron { content += triWidth }
+        if showsDots, showsChevron { content += groupGap }
+        if content == 0 { content = 10.0 * unit }
+
+        let glyph = NSSize(width: ceil(content + 2 * unit), height: height)
+        guard showsPill else { return glyph }
+        return NSSize(width: glyph.width + 14, height: glyph.height + 4)
+    }
+
     static func image(
         height: CGFloat,
         color: NSColor,

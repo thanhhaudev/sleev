@@ -13,6 +13,7 @@ struct PreferencesView: View {
     let onAutoHideSettingsChanged: () -> Void
     let onHotkeyChanged: (HotkeyAction, Hotkey?) -> Void
     let onRecordingActiveChanged: (Bool) -> Void
+    let onMenuBarAppearanceChanged: () -> Void
 
     @AppStorage(Preferences.Key.autoHideEnabled, store: AppGroupDefaults.shared())
     private var autoHideEnabled = false
@@ -61,6 +62,10 @@ struct PreferencesView: View {
         }
         .onChange(of: autoHideEnabled) { _, _ in onAutoHideSettingsChanged() }
         .onChange(of: autoHideDelay) { _, _ in onAutoHideSettingsChanged() }
+        .onChange(of: menuBarShowPill) { _, _ in onMenuBarAppearanceChanged() }
+        .onChange(of: menuBarShowDots) { _, _ in onMenuBarAppearanceChanged() }
+        .onChange(of: menuBarShowChevron) { _, _ in onMenuBarAppearanceChanged() }
+        .onChange(of: menuBarHandleSize) { _, _ in onMenuBarAppearanceChanged() }
     }
 
     // MARK: - Sections

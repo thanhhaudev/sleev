@@ -10,13 +10,15 @@ final class PreferencesWindowController: NSWindowController, NSWindowDelegate {
     init(
         onAutoHideSettingsChanged: @escaping () -> Void,
         onHotkeyChanged: @escaping (HotkeyAction, Hotkey?) -> Void,
-        onRecordingActiveChanged: @escaping (Bool) -> Void
+        onRecordingActiveChanged: @escaping (Bool) -> Void,
+        onMenuBarAppearanceChanged: @escaping () -> Void
     ) {
         let hosting = NSHostingController(
             rootView: PreferencesView(
                 onAutoHideSettingsChanged: onAutoHideSettingsChanged,
                 onHotkeyChanged: onHotkeyChanged,
-                onRecordingActiveChanged: onRecordingActiveChanged
+                onRecordingActiveChanged: onRecordingActiveChanged,
+                onMenuBarAppearanceChanged: onMenuBarAppearanceChanged
             )
         )
         // Force a layout pass so the SwiftUI content reports a real fitting
