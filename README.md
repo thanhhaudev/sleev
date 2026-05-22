@@ -1,20 +1,6 @@
 # sleev
 
-A macOS menu bar utility that tucks icons away behind a compact sleeve
-handle — a modern take on Hidden Bar.
-
-## Features
-
-- Tuck menu bar icons away behind a compact sleeve handle.
-- Toggle the sleeve by clicking the handle or with a global keyboard
-  shortcut.
-- A popover that lists every menu bar item across two zones — sleeved and
-  in the menu bar.
-- Drag items between zones, or rearrange them directly in the menu bar.
-- An auto-hide timer that re-tucks the icons after a spell of inactivity.
-- Launch at login.
-- A customizable separator — adjust its size and opacity.
-- A short onboarding flow that walks through granting permission.
+Hides the menu bar icons nobody clicks.
 
 ## Requirements
 
@@ -25,27 +11,36 @@ macOS 26 or later.
 1. Download `Sleev-1.0.0.dmg` from the
    [latest release](https://github.com/thanhhaudev/sleev/releases/latest).
 2. Open the DMG and drag **sleev** into Applications.
-3. sleev is not notarized, so macOS will not open it from a double-click
-   the first time. Right-click the app in Applications, choose **Open**,
-   then confirm. This is needed only once.
-4. Grant Accessibility permission when prompted — sleev needs it to read
-   and rearrange menu bar items.
+3. sleev is not notarized, so the first launch needs a nudge: right-click
+   the app, choose **Open**, then confirm. Once is enough.
+4. Grant Accessibility permission when prompted — without it, sleev can
+   neither see the menu bar nor move anything in it.
+
+## How to use it
+
+The popover lists every menu bar item in two zones — sleeved and visible.
+
+| Action | What it does |
+| --- | --- |
+| Click the handle, or press the global shortcut | Hides or shows the sleeved icons |
+| Drag an item in the popover | Moves it between the sleeved and visible zones |
+| Drag icons in the menu bar | Rearranges them as usual; sleev keeps up |
+| Leave it alone for a while | Auto-hide re-tucks the icons |
+
+Open **Settings** for the global shortcut, launch at login, and the
+separator's size and opacity.
 
 ## Permissions & privacy
 
-sleev needs Accessibility permission to see the menu bar and move its
-icons. It runs entirely on the Mac and sends nothing over the network.
+sleev needs Accessibility permission, and nothing else. It runs entirely
+on the Mac and never touches the network.
 
 ## Build from source
 
-Requires macOS 26 and Xcode 26.x, plus:
+Requires macOS 26 and Xcode 26.x.
 
 ```bash
 brew install xcodegen swiftlint swiftformat
 make build      # build the app
-make ci         # lint, build, and run the tests
+make ci         # lint, build, and test
 ```
-
-## License
-
-MIT. See [LICENSE](LICENSE).
