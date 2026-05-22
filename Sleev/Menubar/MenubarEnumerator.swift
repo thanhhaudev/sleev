@@ -34,7 +34,7 @@ public final class MenubarEnumerator {
             }
         }
         Log.accessibility.info(
-            "Enumerator: found \(items.count) items: \(items.map(\.displayName).joined(separator: ", "), privacy: .public)"
+            "Enumerator: found \(items.count) items: \(items.map { "\($0.displayName) [\($0.id)]" }.joined(separator: ", "), privacy: .public)"
         )
         return items
     }
