@@ -44,3 +44,8 @@ brew install xcodegen swiftlint swiftformat
 make build      # build the app
 make ci         # lint, build, and test
 ```
+
+## Credits
+
+sleev's menu bar approach is derived from
+[Hidden Bar](https://github.com/dwarvesf/hidden) by Dwarves Foundation.
