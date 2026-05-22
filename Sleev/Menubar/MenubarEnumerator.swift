@@ -12,12 +12,36 @@ import SleevCore
 /// We enumerate all running apps and collect those extras.
 public final class MenubarEnumerator {
     /// AXIdentifiers of menu bar extras macOS pins in place. They cannot be
-    /// dragged, so the popover omits them. Values captured by the Task 1
-    /// diagnostic run.
+    /// dragged, so the popover omits them. The control-center and clock values
+    /// were captured by an earlier diagnostic run; `audiovideo` is the
+    /// camera/microphone in-use indicator, confirmed by the diagnostic run for
+    /// the system-indicator-exclusion fix.
     private static let excludedAXIdentifiers: Set<String> = [
         "com.apple.menuextra.controlcenter",
-        "com.apple.menuextra.clock"
+        "com.apple.menuextra.clock",
+        "com.apple.menuextra.audiovideo"
     ]
+
+    /// Bundle identifiers whose every menu bar extra the popover omits.
+    /// `com.apple.screencaptureui` owns the transient screen-recording stop
+    /// control, which is system-pinned and not user-draggable.
+    private static let excludedBundleIDs: Set<String> = [
+        "com.apple.screencaptureui"
+    ]
+
+    /// True for system menu bar items the popover must never list: macOS-pinned
+    /// extras (Control Center, clock), the camera/microphone in-use indicator,
+    /// and the screen-recording stop control. None can be repositioned by the
+    /// user, so listing them as cards would only mislead.
+    static func isExcludedSystemItem(bundleID: String?, axIdentifier: String?) -> Bool {
+        if let axIdentifier, excludedAXIdentifiers.contains(axIdentifier) {
+            return true
+        }
+        if let bundleID, excludedBundleIDs.contains(bundleID) {
+            return true
+        }
+        return false
+    }
 
     public init() {}
 
@@ -62,8 +86,9 @@ public final class MenubarEnumerator {
         // reposition (the Control Center icon and the clock).
         let movable = elementsArray.filter { element in
             guard let frame = elementFrame(element), frame.width > 0 else { return false }
-            guard let identifier = stringAttribute(element, kAXIdentifierAttribute) else { return true }
-            return !Self.excludedAXIdentifiers.contains(identifier)
+            let identifier = stringAttribute(element, kAXIdentifierAttribute)
+            let bundleID = owningApp(of: element)?.bundleIdentifier
+            return !Self.isExcludedSystemItem(bundleID: bundleID, axIdentifier: identifier)
         }
         return movable.enumerated().map { index, element in
             makeItem(from: element, siblingCount: movable.count, index: index)

@@ -23,4 +23,49 @@ final class MenubarEnumeratorTests: XCTestCase {
             )
         }
     }
+
+    func test_excludedSystemItem_screenRecordingControl_isExcluded() {
+        XCTAssertTrue(
+            MenubarEnumerator.isExcludedSystemItem(
+                bundleID: "com.apple.screencaptureui",
+                axIdentifier: nil
+            )
+        )
+    }
+
+    func test_excludedSystemItem_cameraMicIndicator_isExcluded() {
+        XCTAssertTrue(
+            MenubarEnumerator.isExcludedSystemItem(
+                bundleID: "com.apple.controlcenter",
+                axIdentifier: "com.apple.menuextra.audiovideo"
+            )
+        )
+    }
+
+    func test_excludedSystemItem_clock_isExcluded() {
+        XCTAssertTrue(
+            MenubarEnumerator.isExcludedSystemItem(
+                bundleID: "com.apple.controlcenter",
+                axIdentifier: "com.apple.menuextra.clock"
+            )
+        )
+    }
+
+    func test_excludedSystemItem_controlCenterModule_isNotExcluded() {
+        XCTAssertFalse(
+            MenubarEnumerator.isExcludedSystemItem(
+                bundleID: "com.apple.controlcenter",
+                axIdentifier: "com.apple.menuextra.wifi"
+            )
+        )
+    }
+
+    func test_excludedSystemItem_thirdPartyApp_isNotExcluded() {
+        XCTAssertFalse(
+            MenubarEnumerator.isExcludedSystemItem(
+                bundleID: "dev.kdrag0n.MacVirt",
+                axIdentifier: nil
+            )
+        )
+    }
 }
