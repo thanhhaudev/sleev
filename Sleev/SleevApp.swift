@@ -117,6 +117,12 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
 
     private func openPopover() {
         guard let button = statusBar?.handleButton else { return }
+        // Re-reconcile zones against the live separator position using
+        // cached frames before showing. Catches user-moves of the separator
+        // while the popover was closed, so the sleeved/visible split is
+        // correct on first paint instead of flashing the old split until
+        // the async refresh below catches up ~200ms later.
+        reconcileZones(items: inventory.items)
         refreshInventory()
         startInventoryRefresh()
         let root = IconGridView(
