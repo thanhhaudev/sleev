@@ -8,18 +8,6 @@ macOS 26 or later.
 
 ## Install
 
-### Recommended: Homebrew Cask
-
-```bash
-brew install --cask sleev
-```
-
-The Cask formula clears macOS's quarantine flag during install, so sleev
-opens cleanly on first launch. (Cask formula pending submission to
-homebrew/homebrew-cask — until then, use the manual path below.)
-
-### Manual
-
 1. Download `Sleev-<version>.dmg` from the
    [latest release](https://github.com/thanhhaudev/sleev/releases/latest).
 2. Open the DMG and drag **sleev** into Applications.
@@ -33,6 +21,12 @@ homebrew/homebrew-cask — until then, use the manual path below.)
 4. Open sleev from Applications. Grant Accessibility permission when
    prompted — without it, sleev can neither see the menu bar nor move
    anything in it.
+
+### Homebrew Cask (coming soon)
+
+A Cask formula is pending submission to homebrew/homebrew-cask. Once
+merged, `brew install --cask sleev` will handle step 3 above
+automatically.
 
 ## How to use it
 
