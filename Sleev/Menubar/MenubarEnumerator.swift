@@ -87,7 +87,11 @@ public final class MenubarEnumerator {
         let movable = elementsArray.filter { element in
             guard let frame = elementFrame(element), frame.width > 0 else { return false }
             let identifier = stringAttribute(element, kAXIdentifierAttribute)
-            let bundleID = owningApp(of: element)?.bundleIdentifier
+            // Fall back to the enumerated runApp's bundle id: children come from
+            // its AXExtrasMenuBar, so if AXUIElementGetPid races with a transient
+            // owner (e.g. screencaptureui dying mid-enumeration) we still know who
+            // owns them and the exclusion does not fail open.
+            let bundleID = owningApp(of: element)?.bundleIdentifier ?? runApp.bundleIdentifier
             return !Self.isExcludedSystemItem(bundleID: bundleID, axIdentifier: identifier)
         }
         return movable.enumerated().map { index, element in
