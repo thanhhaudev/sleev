@@ -14,7 +14,7 @@ final class ZoneReconcilerTests: XCTestCase {
     func test_itemLeftOfSeparator_isSleeved() {
         let zones = ZoneReconciler.reconciledZones(
             items: [item(id: "a", midX: 300)],
-            separatorMidX: 500,
+            separatorBoundaryX: 500,
             screenXRange: 0 ... 1000
         )
         XCTAssertEqual(zones["a"], .sleeved)
@@ -23,7 +23,7 @@ final class ZoneReconcilerTests: XCTestCase {
     func test_itemRightOfSeparator_isVisible() {
         let zones = ZoneReconciler.reconciledZones(
             items: [item(id: "a", midX: 700)],
-            separatorMidX: 500,
+            separatorBoundaryX: 500,
             screenXRange: 0 ... 1000
         )
         XCTAssertEqual(zones["a"], .visible)
@@ -32,7 +32,7 @@ final class ZoneReconcilerTests: XCTestCase {
     func test_itemOutsideScreen_isOmitted() {
         let zones = ZoneReconciler.reconciledZones(
             items: [item(id: "a", midX: 1500)],
-            separatorMidX: 500,
+            separatorBoundaryX: 500,
             screenXRange: 0 ... 1000
         )
         XCTAssertNil(zones["a"])
@@ -45,7 +45,7 @@ final class ZoneReconcilerTests: XCTestCase {
                 item(id: "right", midX: 800),
                 item(id: "offscreen", midX: 1500)
             ],
-            separatorMidX: 500,
+            separatorBoundaryX: 500,
             screenXRange: 0 ... 1000
         )
         XCTAssertEqual(zones, ["left": .sleeved, "right": .visible])
@@ -54,7 +54,7 @@ final class ZoneReconcilerTests: XCTestCase {
     func test_emptyItems_returnsEmpty() {
         let zones = ZoneReconciler.reconciledZones(
             items: [],
-            separatorMidX: 500,
+            separatorBoundaryX: 500,
             screenXRange: 0 ... 1000
         )
         XCTAssertTrue(zones.isEmpty)
@@ -70,7 +70,7 @@ final class ZoneReconcilerTests: XCTestCase {
                 item(id: "visible", midX: 2500),
                 item(id: "onPrimary", midX: 400)
             ],
-            separatorMidX: 1960,
+            separatorBoundaryX: 1960,
             screenXRange: 1000 ... 2920
         )
         XCTAssertEqual(zones["sleeved"], .sleeved)

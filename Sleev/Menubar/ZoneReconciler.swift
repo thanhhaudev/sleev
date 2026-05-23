@@ -11,19 +11,25 @@ enum ZoneReconciler {
     /// Items on another display fall outside the range and are omitted, so the
     /// caller keeps their stored zone.
     ///
-    /// `separatorMidX` and every `item.frame` must be screen-global x values.
-    /// The x-axis is identical between AppKit and the Accessibility API, so
-    /// values from either space may be compared directly.
+    /// `separatorBoundaryX` and every `item.frame` must be screen-global x
+    /// values. The x-axis is identical between AppKit and the Accessibility
+    /// API, so values from either space may be compared directly.
+    ///
+    /// The caller passes the separator's right edge (`frame.maxX`) rather
+    /// than its center, because the right edge is stable across the
+    /// expanded/collapsed states — when collapsed the separator grows
+    /// leftward (pushing icons off-screen) while its right edge stays
+    /// anchored at the user-intended boundary.
     static func reconciledZones(
         items: [MenubarItem],
-        separatorMidX: CGFloat,
+        separatorBoundaryX: CGFloat,
         screenXRange: ClosedRange<CGFloat>
     ) -> [MenubarItem.ID: Zone] {
         var result: [MenubarItem.ID: Zone] = [:]
         for item in items {
             let midX = item.frame.midX
             guard screenXRange.contains(midX) else { continue }
-            result[item.id] = midX < separatorMidX ? .sleeved : .visible
+            result[item.id] = midX < separatorBoundaryX ? .sleeved : .visible
         }
         return result
     }

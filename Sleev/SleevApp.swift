@@ -295,27 +295,28 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
 extension SleevApp {
     /// Updates each on-screen icon's zone from its horizontal position
     /// relative to the separator, so the popover reflects manual ⌘-drag
-    /// rearrangement. Runs only while the bar is expanded — when collapsed the
-    /// separator is ballooned and its position is meaningless. Icons on other
+    /// rearrangement. Uses the separator's right edge (`frame.maxX`) as the
+    /// boundary so the result is correct in both expanded and collapsed
+    /// states — when collapsed the separator widens leftward, but its right
+    /// edge stays anchored at the user-intended boundary. Icons on other
     /// displays fall outside the separator screen's x-range and keep their
     /// stored zone.
     private func reconcileZones(items: [MenubarItem]) {
-        guard statusBar?.isCollapsed == false,
-              let separatorWindow = statusBar?.separatorButton?.window,
+        guard let separatorWindow = statusBar?.separatorButton?.window,
               let screen = separatorWindow.screen ?? NSScreen.main
         else { return }
 
-        let separatorMidX = separatorWindow.frame.midX
+        let separatorBoundaryX = separatorWindow.frame.maxX
         let zones = ZoneReconciler.reconciledZones(
             items: items,
-            separatorMidX: separatorMidX,
+            separatorBoundaryX: separatorBoundaryX,
             screenXRange: screen.frame.minX ... screen.frame.maxX
         )
         for (id, zone) in zones where !inventory.inFlightIDs.contains(id) {
             inventory.setZone(zone, forItemID: id)
         }
         Log.app.info(
-            "reconcileZones: separatorMidX=\(separatorMidX), \(zones.count) items on the separator's screen"
+            "reconcileZones: separatorBoundaryX=\(separatorBoundaryX), \(zones.count) items on the separator's screen"
         )
     }
 }
