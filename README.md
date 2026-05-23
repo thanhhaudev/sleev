@@ -8,13 +8,31 @@ macOS 26 or later.
 
 ## Install
 
-1. Download `Sleev-1.0.0.dmg` from the
+### Recommended: Homebrew Cask
+
+```bash
+brew install --cask sleev
+```
+
+The Cask formula clears macOS's quarantine flag during install, so sleev
+opens cleanly on first launch. (Cask formula pending submission to
+homebrew/homebrew-cask — until then, use the manual path below.)
+
+### Manual
+
+1. Download `Sleev-<version>.dmg` from the
    [latest release](https://github.com/thanhhaudev/sleev/releases/latest).
 2. Open the DMG and drag **sleev** into Applications.
-3. sleev is not notarized, so the first launch needs a nudge: right-click
-   the app, choose **Open**, then confirm. Once is enough.
-4. Grant Accessibility permission when prompted — without it, sleev can
-   neither see the menu bar nor move anything in it.
+3. sleev is signed ad-hoc, not with an Apple Developer ID, so macOS
+   refuses to open it after download. Clear the quarantine attribute:
+
+   ```bash
+   xattr -cr /Applications/Sleev.app
+   ```
+
+4. Open sleev from Applications. Grant Accessibility permission when
+   prompted — without it, sleev can neither see the menu bar nor move
+   anything in it.
 
 ## How to use it
 
