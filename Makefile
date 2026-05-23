@@ -74,6 +74,8 @@ dmg: generate
 		-archivePath build/Sleev.xcarchive \
 		-allowProvisioningUpdates; \
 	cp -R "build/Sleev.xcarchive/Products/Applications/$(APP_NAME)" build/dmg-staging/; \
+	echo "Verifying code signature structure..."; \
+	codesign --verify --deep --strict --verbose=2 "build/dmg-staging/$(APP_NAME)"; \
 	ln -s /Applications build/dmg-staging/Applications; \
 	hdiutil create -volname "sleev" -srcfolder build/dmg-staging -ov -format UDZO "build/Sleev-$$VERSION.dmg"; \
 	rm -rf build/dmg-staging build/Sleev.xcarchive; \
