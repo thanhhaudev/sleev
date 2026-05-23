@@ -6,6 +6,23 @@ The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2026-05-23
+
+### Fixed
+
+- v1.0.0 failed to launch on any Mac outside the maintainer's. It was
+  signed with an Apple Development certificate (which macOS Gatekeeper
+  rejects for distribution) and declared a team ID the maintainer does
+  not own. v1.0.1 ships ad-hoc-signed; install via Homebrew Cask, or via
+  direct DMG plus `xattr -cr /Applications/Sleev.app` (see README).
+- Removed an unused App Groups entitlement that compounded the launch
+  failure on machines outside the maintainer's provisioning profile.
+
+### Changed
+
+- Contributors can now build the repo with `make ci` without an Apple
+  Developer account — the project signs ad-hoc by default.
+
 ## [1.0.0] - 2026-05-22
 
 ### Added
