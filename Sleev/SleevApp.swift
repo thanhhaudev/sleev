@@ -31,6 +31,10 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
     private var inventoryRefreshTimer: Timer?
 
     static func main() {
+        if NSClassFromString("XCTestCase") != nil {
+            _ = NSApplicationMain(CommandLine.argc, CommandLine.unsafeArgv)
+            return
+        }
         let app = NSApplication.shared
         let delegate = SleevApp()
         app.delegate = delegate
