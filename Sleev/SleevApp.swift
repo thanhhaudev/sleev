@@ -6,15 +6,15 @@ import SwiftUI
 @MainActor
 @main
 final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency OnboardingViewControllerDelegate {
-    private enum RunMode {
+    enum RunMode {
         case onboardingPreview
         case statusBarPreview
         case real
     }
 
     private let onboardingWindow = OnboardingWindowController()
-    private let onboardingVC = OnboardingViewController()
-    private let accessibility = AccessibilityService()
+    let onboardingVC = OnboardingViewController()
+    let accessibility = AccessibilityService()
     private let zoneStore = ZoneStore()
     private let enumerator = MenubarEnumerator()
     private let dragSimulator = DragSimulator()
@@ -26,7 +26,7 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
     private var statusBar: StatusBarController?
     private var preferencesWindow: PreferencesWindowController?
     private let hotkeyManager = HotkeyManager()
-    private var runMode: RunMode = .real
+    var runMode: RunMode = .real
     private var pollTimer: Timer?
     private var inventoryRefreshTimer: Timer?
 
@@ -108,6 +108,10 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
             statusBar = nil
             popover.close()
             Log.app.info("Status bar removed")
+            // Reset to the initial button label in case the user previously
+            // clicked Open Settings (which flips it to "Check Now") and then
+            // revoked the permission before granting.
+            onboardingVC.setMode(.openSettings)
             onboardingWindow.present()
             startPolling()
         }
@@ -283,35 +287,6 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
         controller.onRightClick = { [weak self] in self?.openPopover() }
         statusBar = controller
         Log.app.info("Status bar preview installed; right-click handle to see popover")
-    }
-}
-
-// MARK: - OnboardingViewControllerDelegate
-
-extension SleevApp {
-    func onboardingViewControllerDidRequestOpenSettings(_: OnboardingViewController) {
-        switch runMode {
-        case .onboardingPreview, .statusBarPreview:
-            Log.app.info("[stub] OpenSettings tapped")
-            let alert = NSAlert()
-            alert.messageText = "Stub: would open System Settings"
-            alert.informativeText = "Real wiring lands in M2."
-            alert.runModal()
-        case .real:
-            Log.app.info("OpenSettings: prompting from UI process")
-            _ = accessibility.promptForPermission()
-        }
-    }
-
-    func onboardingViewControllerDidRequestCheckNow(_: OnboardingViewController) {
-        if runMode == .real {
-            apply(state: accessibility.currentState())
-        }
-    }
-
-    func onboardingViewControllerDidRequestQuit(_: OnboardingViewController) {
-        Log.app.info("Quit tapped")
-        NSApp.terminate(nil)
     }
 }
 
