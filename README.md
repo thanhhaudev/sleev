@@ -1,6 +1,8 @@
 # sleev
 
-Hides the menu bar icons nobody clicks.
+One click hides half the menu bar. Another brings it back.
+
+![sleev demo](.github/assets/demo.gif)
 
 ## Requirements
 
@@ -18,8 +20,10 @@ macOS 26 or later.
    xattr -cr /Applications/Sleev.app
    ```
 
-4. Open sleev from Applications. Grant Accessibility permission when
-   prompted — without it, sleev can neither see the menu bar nor move
+4. Open sleev from Applications. The onboarding window asks for
+   Accessibility permission. Open **System Settings → Privacy &
+   Security → Accessibility**, find sleev in the list, and turn its
+   toggle on. Without it, sleev can neither see the menu bar nor move
    anything in it.
 
 ### Homebrew Cask (coming soon)
@@ -36,7 +40,8 @@ The popover lists every menu bar item in two zones — sleeved and visible.
 | --- | --- |
 | Click the handle, or press the global shortcut | Hides or shows the sleeved icons |
 | Drag an item in the popover | Moves it between the sleeved and visible zones |
-| Drag icons in the menu bar | Rearranges them as usual; sleev keeps up |
+| ⌘-drag the handle or separator in the menu bar | Repositions them. The separator marks the boundary — icons left of it get sleeved |
+| ⌘-drag any other menu bar icon | Standard macOS rearrangement; sleev tracks the new order |
 | Leave it alone for a while | Auto-hide re-tucks the icons |
 
 Open **Settings** for the global shortcut, launch at login, and the

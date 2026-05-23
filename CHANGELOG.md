@@ -6,7 +6,15 @@ The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.1] - 2026-05-23
+## [1.0.1] - 2026-05-24
+
+### Changed
+
+- New tagline in the About panel and README: "One click hides half the
+  menu bar. Another brings it back."
+- README now walks through granting Accessibility permission in System
+  Settings, documents the ⌘-drag gesture for repositioning the handle
+  and separator, and includes a demo GIF.
 
 ### Fixed
 

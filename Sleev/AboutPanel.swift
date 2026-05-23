@@ -21,7 +21,7 @@ enum AboutPanel {
         paragraph.alignment = .center
 
         let text = NSMutableAttributedString(
-            string: "Hides the menu bar icons nobody clicks.\n\n",
+            string: "One click hides half the menu bar. Another brings it back.\n\n",
             attributes: [
                 .font: NSFont.systemFont(ofSize: 11),
                 .foregroundColor: NSColor.secondaryLabelColor,
