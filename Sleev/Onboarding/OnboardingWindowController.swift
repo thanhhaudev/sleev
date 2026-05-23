@@ -29,6 +29,7 @@ final class OnboardingWindowController: NSWindowController {
     }
 
     func present() {
+        guard window?.isVisible != true else { return }
         NSApp.setActivationPolicy(.regular)
         showWindow(nil)
         window?.makeKeyAndOrderFront(nil)

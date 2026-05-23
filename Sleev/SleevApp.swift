@@ -83,6 +83,13 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
         return true
     }
 
+    func applicationDidBecomeActive(_: Notification) {
+        // Belt-and-suspenders for the polling-timer .common-mode fix below.
+        // Skip once the status bar is up — onboarding is already past us.
+        guard runMode == .real, statusBar == nil else { return }
+        apply(state: accessibility.currentState())
+    }
+
     private func apply(state: AXPermissionState) {
         switch state {
         case .granted:
@@ -240,7 +247,7 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
     private func startPolling() {
         guard pollTimer == nil else { return }
         Log.app.info("Polling AX state every 1.5s while onboarding shown")
-        pollTimer = Timer.scheduledTimer(withTimeInterval: 1.5, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 1.5, repeats: true) { [weak self] _ in
             guard let self else { return }
             MainActor.assumeIsolated {
                 if self.accessibility.currentState() == .granted {
@@ -248,6 +255,8 @@ final class SleevApp: NSObject, NSApplicationDelegate, @preconcurrency Onboardin
                 }
             }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        pollTimer = timer
     }
 
     private func stopPolling() {
