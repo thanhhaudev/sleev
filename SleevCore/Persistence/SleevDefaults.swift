@@ -1,6 +1,6 @@
 import Foundation
 
-public enum AppGroupDefaults {
+public enum SleevDefaults {
     public static func shared() -> UserDefaults {
         .standard
     }

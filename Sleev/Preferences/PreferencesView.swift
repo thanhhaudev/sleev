@@ -15,28 +15,28 @@ struct PreferencesView: View {
     let onRecordingActiveChanged: (Bool) -> Void
     let onMenuBarAppearanceChanged: () -> Void
 
-    @AppStorage(Preferences.Key.autoHideEnabled, store: AppGroupDefaults.shared())
+    @AppStorage(Preferences.Key.autoHideEnabled, store: SleevDefaults.shared())
     private var autoHideEnabled = false
 
-    @AppStorage(Preferences.Key.autoHideDelay, store: AppGroupDefaults.shared())
+    @AppStorage(Preferences.Key.autoHideDelay, store: SleevDefaults.shared())
     private var autoHideDelay = Preferences.defaultAutoHideDelay
 
-    @AppStorage(Preferences.Key.menuBarShowPill, store: AppGroupDefaults.shared())
+    @AppStorage(Preferences.Key.menuBarShowPill, store: SleevDefaults.shared())
     private var menuBarShowPill = true
 
-    @AppStorage(Preferences.Key.menuBarShowDots, store: AppGroupDefaults.shared())
+    @AppStorage(Preferences.Key.menuBarShowDots, store: SleevDefaults.shared())
     private var menuBarShowDots = true
 
-    @AppStorage(Preferences.Key.menuBarShowChevron, store: AppGroupDefaults.shared())
+    @AppStorage(Preferences.Key.menuBarShowChevron, store: SleevDefaults.shared())
     private var menuBarShowChevron = true
 
-    @AppStorage(Preferences.Key.menuBarHandleSize, store: AppGroupDefaults.shared())
+    @AppStorage(Preferences.Key.menuBarHandleSize, store: SleevDefaults.shared())
     private var menuBarHandleSize = Preferences.defaultHandleSize
 
-    @AppStorage(Preferences.Key.menuBarSeparatorSize, store: AppGroupDefaults.shared())
+    @AppStorage(Preferences.Key.menuBarSeparatorSize, store: SleevDefaults.shared())
     private var menuBarSeparatorSize = Preferences.defaultSeparatorSize
 
-    @AppStorage(Preferences.Key.menuBarSeparatorOpacity, store: AppGroupDefaults.shared())
+    @AppStorage(Preferences.Key.menuBarSeparatorOpacity, store: SleevDefaults.shared())
     private var menuBarSeparatorOpacity = Preferences.defaultSeparatorOpacity
 
     @State private var openAtLogin = false

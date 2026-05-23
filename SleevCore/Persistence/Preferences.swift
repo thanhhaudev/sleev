@@ -21,7 +21,7 @@ public struct Preferences {
 
     private let defaults: UserDefaults
 
-    public init(defaults: UserDefaults = AppGroupDefaults.shared()) {
+    public init(defaults: UserDefaults = SleevDefaults.shared()) {
         self.defaults = defaults
         defaults.register(defaults: [
             Key.autoHideEnabled: false,

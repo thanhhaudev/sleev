@@ -12,7 +12,7 @@ public final class ZoneStore {
     private let zoneKey = "sleev.zones.itemZones"
     private let lastSeenKey = "sleev.zones.lastSeen"
 
-    public init(defaults: UserDefaults = AppGroupDefaults.shared(), clock: @escaping Clock = Date.init) {
+    public init(defaults: UserDefaults = SleevDefaults.shared(), clock: @escaping Clock = Date.init) {
         self.defaults = defaults
         self.clock = clock
     }
